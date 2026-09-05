@@ -19,10 +19,10 @@ const deleteTaskSchema = z.object({
   id: z.string().uuid(),
 });
 
-export function executeTool(
-    name: string,
-    argumentsJson: string
-    ) {
+export async function executeTool(
+  name: string,
+  argumentsJson: string
+) {
     try {
         const args = JSON.parse(argumentsJson);
 
@@ -32,14 +32,14 @@ export function executeTool(
 
                 return {
                     success: true,
-                    data: createTask(validatedArgs.title),
+                    data: await createTask(validatedArgs.title),
                 };
             }
 
       case "list_tasks": {
         return {
           success: true,
-          data: listTasks(),
+          data: await listTasks(),
         };
       }
 
@@ -48,7 +48,7 @@ export function executeTool(
 
         return {
           success: true,
-          data: completeTask(validatedArgs.id),
+          data: await completeTask(validatedArgs.id),
         };
       }
 
@@ -57,7 +57,7 @@ export function executeTool(
 
         return {
           success: true,
-          data: deleteTask(validatedArgs.id),
+          data: await deleteTask(validatedArgs.id),
         };
       }
 

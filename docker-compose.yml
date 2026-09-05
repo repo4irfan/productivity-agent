@@ -1,0 +1,14 @@
+services:
+  mongodb:
+    image: mongo:8
+    container_name: productivity-agent-mongo
+    restart: unless-stopped
+    ports:
+      - "27018:27017"
+    environment:
+      MONGO_INITDB_DATABASE: productivity_agent
+    volumes:
+      - productivity_agent_mongo_data:/data/db
+
+volumes:
+  productivity_agent_mongo_data:

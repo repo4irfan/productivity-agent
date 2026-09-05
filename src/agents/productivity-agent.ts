@@ -126,7 +126,7 @@ export async function productivityAgent(
     console.log("Tool requested:", functionCall.name);
     console.log("Arguments:", functionCall.arguments);
 
-    const result = executeTool(
+    const result = await executeTool(
       functionCall.name,
       functionCall.arguments
     );

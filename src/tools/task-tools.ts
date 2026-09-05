@@ -1,47 +1,32 @@
+import {
+  createTask as createTaskInDb,
+  listTasks as listTasksFromDb,
+  completeTask as completeTaskInDb,
+  deleteTask as deleteTaskFromDb,
+} from "../repositories/task-repository";
+
 export type Task = {
   id: string;
   title: string;
   completed: boolean;
 };
 
-const tasks: Task[] = [];
-
-export function createTask(title: string): Task {
-  const task: Task = {
-    id: crypto.randomUUID(),
-    title,
-    completed: false,
-  };
-
-  tasks.push(task);
-
-  return task;
+export async function createTask(title: string): Promise<Task> {
+  return createTaskInDb(title);
 }
 
-export function listTasks(): Task[] {
-  return tasks;
+export async function listTasks(): Promise<Task[]> {
+  return listTasksFromDb();
 }
 
-export function completeTask(id: string): Task | null {
-  const task = tasks.find((task) => task.id === id);
-
-  if (!task) {
-    return null;
-  }
-
-  task.completed = true;
-
-  return task;
+export async function completeTask(
+  id: string
+): Promise<Task | null> {
+  return completeTaskInDb(id);
 }
 
-export function deleteTask(id: string): Task | null {
-  const index = tasks.findIndex((task) => task.id === id);
-
-  if (index === -1) {
-    return null;
-  }
-
-  const [deletedTask] = tasks.splice(index, 1);
-
-  return deletedTask;
+export async function deleteTask(
+  id: string
+): Promise<Task | null> {
+  return deleteTaskFromDb(id);
 }

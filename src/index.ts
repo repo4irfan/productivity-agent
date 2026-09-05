@@ -2,6 +2,7 @@ import "dotenv/config";
 import readline from "node:readline/promises";
 import { productivityAgent } from "./agents/productivity-agent";
 import { AgentState } from "./agents/agent-state";
+import { connectDatabase } from "./repositories/task-repository";
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -10,6 +11,8 @@ const rl = readline.createInterface({
 
 async function main() {
 
+    await connectDatabase();
+    
     const state: AgentState = {
         conversation: [],
     };
