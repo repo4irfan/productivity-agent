@@ -2,6 +2,8 @@ import OpenAI from "openai";
 
 import { executeTool } from "./tool-router";
 
+import { AgentState } from "./agent-state";
+
 const client = new OpenAI();
 
 const tools = [
@@ -73,8 +75,9 @@ const tools = [
 ];
 
 export async function productivityAgent(
-  input: any[]
+  state: AgentState
 ) {
+    const input = state.conversation;
   while (true) {
     const response = await client.responses.create({
       model: "gpt-5-mini",
