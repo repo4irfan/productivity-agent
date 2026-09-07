@@ -7,6 +7,11 @@ import {
   deleteTask,
 } from "../tools/task-tools";
 
+import {
+  remember,
+  getMemories,
+} from "../tools/memory-tools";
+
 import type { AgentTool } from "./tool-types";
 
 
@@ -119,9 +124,66 @@ const deleteTaskTool: AgentTool<
   },
 };
 
+const rememberTool: AgentTool<
+  { content: string },
+  Awaited<ReturnType<typeof remember>>
+> = {
+  name: "remember",
+
+  description:
+    "Save a useful piece of information about the user for future conversations.",
+
+  schema: z.object({
+    content: z.string().min(1),
+  }),
+
+  openAISchema: {
+    type: "object",
+    properties: {
+      content: {
+        type: "string",
+        description:
+          "The useful information that should be remembered.",
+      },
+    },
+    required: ["content"],
+    additionalProperties: false,
+  },
+
+  execute: async ({ content }) => {
+    return remember(content);
+  },
+};
+
+const getMemoriesTool: AgentTool<
+  Record<string, never>,
+  Awaited<ReturnType<typeof getMemories>>
+> = {
+  name: "get_memories",
+
+  description:
+    "Retrieve information previously remembered about the user.",
+
+  schema: z.object({}),
+
+  openAISchema: {
+    type: "object",
+    properties: {},
+    required: [],
+    additionalProperties: false,
+  },
+
+  execute: async () => {
+    return getMemories();
+  },
+};
+
 export const toolRegistry = {
   create_task: createTaskTool,
   list_tasks: listTasksTool,
   complete_task: completeTaskTool,
   delete_task: deleteTaskTool,
+
+  remember: rememberTool,
+  get_memories: getMemoriesTool,
 };

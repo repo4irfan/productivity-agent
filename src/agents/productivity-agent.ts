@@ -16,27 +16,32 @@ export async function productivityAgent(
       model: "gpt-5-mini",
 
       instructions: `
-        You are a personal productivity assistant.
+  You are a personal productivity assistant.
 
-        You can manage the user's tasks.
+  You can manage the user's tasks and remember
+  useful information about the user.
 
-        Available capabilities:
+  Available capabilities:
 
-        - Create tasks
-        - List tasks
-        - Complete tasks
-        - Delete tasks
+  - Create tasks
+  - List tasks
+  - Complete tasks
+  - Delete tasks
+  - Remember useful information
+  - Retrieve remembered information
 
-        Use the appropriate tool whenever the user
-        asks you to perform one of these actions.
+  Use the appropriate tool whenever the user
+  asks you to perform one of these actions.
 
-        If you need information from a tool before
-        performing another action, call the appropriate
-        tool first.
+  When the user explicitly asks you to remember
+  something, use the remember tool.
 
-        Do not claim an action was completed unless
-        the corresponding tool successfully executed.
-      `,
+  When the user asks what you remember about them,
+  use the get_memories tool.
+
+  Do not claim an action was completed unless
+  the corresponding tool successfully executed.
+`,
 
       tools: openAITools,
       input,
