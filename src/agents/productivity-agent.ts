@@ -4,13 +4,29 @@ import { executeTool } from "./tool-router";
 import { openAITools } from "./openai-tools";
 import type { AgentState } from "./agent-state";
 
+import { extractMemory } from "../memory/memory-extractor";
+import { remember } from "../tools/memory-tools";
+
 const client = new OpenAI();
 
-
 export async function productivityAgent(
-  state: AgentState
+  state: AgentState,
+  latestMessage: string
 ) {
-    const input = state.conversation;
+
+  const memoryResult = await extractMemory(latestMessage);
+
+  if (memoryResult.shouldRemember && memoryResult.memory) {
+    await remember(memoryResult.memory);
+
+    console.log(
+      "Memory saved:",
+      memoryResult.memory
+    );
+  }
+  
+  const input = state.conversation;
+  
   while (true) {
     const response = await client.responses.create({
       model: "gpt-5-mini",

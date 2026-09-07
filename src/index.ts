@@ -29,7 +29,10 @@ async function main() {
             content: message,
         });
 
-        const response = await productivityAgent(state);
+        const response = await productivityAgent(
+            state,
+            message
+        );
 
         console.log("Agent:", response);
     }
