@@ -1,78 +1,11 @@
 import OpenAI from "openai";
 
 import { executeTool } from "./tool-router";
-
-import { AgentState } from "./agent-state";
+import { openAITools } from "./openai-tools";
+import type { AgentState } from "./agent-state";
 
 const client = new OpenAI();
 
-const tools = [
-  {
-    type: "function" as const,
-    name: "create_task",
-    description: "Create a new productivity task.",
-    parameters: {
-      type: "object",
-      properties: {
-        title: {
-          type: "string",
-          description: "The title of the task",
-        },
-      },
-      required: ["title"],
-      additionalProperties: false,
-    },
-    strict: true,
-  },
-
-  {
-    type: "function" as const,
-    name: "list_tasks",
-    description: "List all productivity tasks.",
-    parameters: {
-      type: "object",
-      properties: {},
-      additionalProperties: false,
-    },
-    strict: true,
-  },
-
-  {
-    type: "function" as const,
-    name: "complete_task",
-    description: "Mark a productivity task as completed.",
-    parameters: {
-      type: "object",
-      properties: {
-        id: {
-          type: "string",
-          description: "The ID of the task to complete",
-        },
-      },
-      required: ["id"],
-      additionalProperties: false,
-    },
-    strict: true,
-  },
-
-  {
-    type: "function" as const,
-    name: "delete_task",
-    description: "Delete a productivity task.",
-    parameters: {
-      type: "object",
-      properties: {
-        id: {
-          type: "string",
-          description: "The ID of the task to delete",
-        },
-      },
-      required: ["id"],
-      additionalProperties: false,
-    },
-    strict: true,
-  },
-];
 
 export async function productivityAgent(
   state: AgentState
@@ -105,7 +38,7 @@ export async function productivityAgent(
         the corresponding tool successfully executed.
       `,
 
-      tools,
+      tools: openAITools,
       input,
     });
 
