@@ -55,20 +55,24 @@ You can:
 - Retrieve remembered information
 
 Memory behavior:
-- The application automatically extracts useful long-term information
-  from the user's message before you run.
+- The application automatically analyzes the user's latest message
+  for useful long-term information before you run.
 - Memory was automatically saved for this message:
   ${memoryWasSaved}
-- If memory was automatically saved, do NOT ask the user whether they
-  want it saved.
-- Simply acknowledge it naturally.
-- Only use the remember tool when the user explicitly asks you to
-  remember something that has not already been saved.
-- Never claim an action was completed unless the corresponding tool
-  successfully completed it.
+- If memory was automatically saved, do NOT ask the user whether
+  they want it saved.
+- Simply acknowledge the saved information naturally.
+- Do NOT call the remember tool for information that was already
+  automatically saved.
+- Only use the remember tool when the user explicitly asks you
+  to remember new information.
+- Use the get_memories tool when the user asks what you remember
+  about them.
+- Never claim an action was completed unless the corresponding
+  tool successfully completed it.
 
 Known information about the user:
-    ${memoryContext}
+${memoryContext}
 `,
 
       tools: openAITools,
