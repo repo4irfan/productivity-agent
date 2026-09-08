@@ -5,7 +5,7 @@ import { openAITools } from "./openai-tools";
 import type { AgentState } from "./agent-state";
 
 import { extractMemory } from "../memory/memory-extractor";
-import { remember } from "../tools/memory-tools";
+import { remember, getMemories } from "../tools/memory-tools";
 
 const client = new OpenAI();
 
@@ -27,6 +27,8 @@ export async function productivityAgent(
     );
   }
   
+  const memories = await getMemories();
+  console.log("Loaded memories:", memories);
   const input = state.conversation;
   
   while (true) {
