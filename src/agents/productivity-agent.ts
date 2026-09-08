@@ -15,6 +15,8 @@ export async function productivityAgent(
 ) {
 
   const memoryResult = await extractMemory(latestMessage);
+  const memoryWasSaved =
+  memoryResult.shouldRemember && !!memoryResult.memory;
 
   if (memoryResult.shouldRemember && memoryResult.memory) {
     await remember(memoryResult.memory);
@@ -32,31 +34,28 @@ export async function productivityAgent(
       model: "gpt-5-mini",
 
       instructions: `
-  You are a personal productivity assistant.
+You are a productivity assistant.
 
-  You can manage the user's tasks and remember
-  useful information about the user.
+You can:
+- Create tasks
+- List tasks
+- Complete tasks
+- Delete tasks
+- Remember useful information
+- Retrieve remembered information
 
-  Available capabilities:
-
-  - Create tasks
-  - List tasks
-  - Complete tasks
-  - Delete tasks
-  - Remember useful information
-  - Retrieve remembered information
-
-  Use the appropriate tool whenever the user
-  asks you to perform one of these actions.
-
-  When the user explicitly asks you to remember
-  something, use the remember tool.
-
-  When the user asks what you remember about them,
-  use the get_memories tool.
-
-  Do not claim an action was completed unless
-  the corresponding tool successfully executed.
+Memory behavior:
+- The application automatically extracts useful long-term information
+  from the user's message before you run.
+- Memory was automatically saved for this message:
+  ${memoryWasSaved}
+- If memory was automatically saved, do NOT ask the user whether they
+  want it saved.
+- Simply acknowledge it naturally.
+- Only use the remember tool when the user explicitly asks you to
+  remember something that has not already been saved.
+- Never claim an action was completed unless the corresponding tool
+  successfully completed it.
 `,
 
       tools: openAITools,

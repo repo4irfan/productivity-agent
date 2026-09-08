@@ -30,14 +30,17 @@ async function main() {
         });
 
         const response = await productivityAgent(
-            state,
-            message
+        state,
+        message
         );
 
         console.log("Agent:", response);
     }
 
-  rl.close();
+    rl.close();
+    console.log("Goodbye!");
+    // 🚀 FORCE THE PROCESS TO TERMINATE IMMEDIATELY
+    process.exit(0); 
 }
 
 main();
