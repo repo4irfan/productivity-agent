@@ -28,7 +28,15 @@ export async function productivityAgent(
   }
   
   const memories = await getMemories();
+
+  const memoryContext =
+    memories.length > 0
+      ? memories
+        .map((memory) => `- ${memory.content}`)
+        .join("\n")
+      : "No stored memories.";
   console.log("Loaded memories:", memories);
+  
   const input = state.conversation;
   
   while (true) {
@@ -58,6 +66,9 @@ Memory behavior:
   remember something that has not already been saved.
 - Never claim an action was completed unless the corresponding tool
   successfully completed it.
+
+Known information about the user:
+    ${memoryContext}
 `,
 
       tools: openAITools,
