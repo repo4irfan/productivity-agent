@@ -15,8 +15,6 @@ export async function productivityAgent(
 ) {
 
   const memoryResult = await extractMemory(latestMessage);
-  const memoryWasSaved =
-  memoryResult.shouldRemember && !!memoryResult.memory;
 
   if (memoryResult.shouldRemember && memoryResult.memory) {
     await remember(memoryResult.memory);
@@ -27,15 +25,6 @@ export async function productivityAgent(
     );
   }
   
-  const memories = await getMemories();
-
-  const memoryContext =
-    memories.length > 0
-      ? memories
-        .map((memory) => `- ${memory.content}`)
-        .join("\n")
-      : "No stored memories.";
-  console.log("Loaded memories:", memories);
   
   const input = state.conversation;
   
@@ -55,24 +44,17 @@ You can:
 - Retrieve remembered information
 
 Memory behavior:
-- The application automatically analyzes the user's latest message
-  for useful long-term information before you run.
-- Memory was automatically saved for this message:
-  ${memoryWasSaved}
-- If memory was automatically saved, do NOT ask the user whether
-  they want it saved.
-- Simply acknowledge the saved information naturally.
+- Useful long-term information may be automatically saved.
+- Do not ask the user whether automatically extracted information
+  should be saved.
 - Do NOT call the remember tool for information that was already
   automatically saved.
-- Only use the remember tool when the user explicitly asks you
-  to remember new information.
+- Use the search_memory tool when stored memories may be relevant
+  to the user's request.
 - Use the get_memories tool when the user asks what you remember
   about them.
 - Never claim an action was completed unless the corresponding
   tool successfully completed it.
-
-Known information about the user:
-${memoryContext}
 `,
 
       tools: openAITools,

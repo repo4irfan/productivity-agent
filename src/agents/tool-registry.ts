@@ -10,6 +10,7 @@ import {
 import {
   remember,
   getMemories,
+  searchMemory
 } from "../tools/memory-tools";
 
 import type { AgentTool } from "./tool-types";
@@ -178,6 +179,34 @@ const getMemoriesTool: AgentTool<
   },
 };
 
+const searchMemoryTool: AgentTool<
+  { query: string },
+  Awaited<ReturnType<typeof searchMemory>>
+> = {
+  name: "search_memory",
+
+  description:
+    "Search the user's stored memories for information relevant to a query.",
+
+  schema: z.object({
+    query: z.string().min(1),
+  }),
+
+  openAISchema: {
+    type: "object",
+    properties: {
+      query: {
+        type: "string",
+        description: "The information to search for in user memories.",
+      },
+    },
+    required: ["query"],
+    additionalProperties: false,
+  },
+
+  execute: async ({ query }) => searchMemory(query),
+};
+
 export const toolRegistry = {
   create_task: createTaskTool,
   list_tasks: listTasksTool,
@@ -186,4 +215,5 @@ export const toolRegistry = {
 
   remember: rememberTool,
   get_memories: getMemoriesTool,
+  search_memory: searchMemoryTool,
 };
