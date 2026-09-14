@@ -1,5 +1,9 @@
 import { ollamaAgent } from "./llm/ollama-agent";
-import { createAgentState } from "./agents/conversation-manager";
+import {
+  createAgentState,
+  loadAgentState,
+} from "./agents/conversation-manager";
+
 import readline from "node:readline/promises";
 
 const rl = readline.createInterface({
@@ -8,11 +12,39 @@ const rl = readline.createInterface({
 });
 
 async function main() {
-  const state = await createAgentState();
-
-  console.log(`Conversation ID: ${state.conversationId}`);
-
   try {
+    const existingConversationId = await rl.question(
+      "Conversation ID (press Enter for new): "
+    );
+
+    let state;
+
+    if (existingConversationId.trim()) {
+      const existingState = await loadAgentState(
+        existingConversationId.trim()
+      );
+
+      if (!existingState) {
+        console.log(
+          "Conversation not found. Creating a new conversation."
+        );
+
+        state = await createAgentState();
+      } else {
+        state = existingState;
+
+        console.log(
+          `Resumed conversation: ${state.conversationId}`
+        );
+      }
+    } else {
+      state = await createAgentState();
+
+      console.log(
+        `Created conversation: ${state.conversationId}`
+      );
+    }
+
     while (true) {
       const message = await rl.question("You: ");
 
