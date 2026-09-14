@@ -1,8 +1,7 @@
-import OpenAI from "openai";
+import ollama from "ollama";
 import { z } from "zod";
-import { zodTextFormat } from "openai/helpers/zod";
 
-const client = new OpenAI();
+const MODEL = "qwen2.5:7b";
 
 const memoryExtractionSchema = z.object({
   shouldRemember: z.boolean(),
@@ -16,52 +15,69 @@ export type MemoryExtractionResult = z.infer<
 export async function extractMemory(
   message: string
 ): Promise<MemoryExtractionResult> {
-  const response = await client.responses.parse({
-    model: "gpt-5-mini",
+  const response = await ollama.chat({
+    model: MODEL,
 
-    instructions: `
-      You are a memory extraction system.
+    messages: [
+      {
+        role: "system",
+        content: `
+You are a memory extraction system.
 
-      Analyze the user's message and determine whether
-      it contains useful information that should be remembered
-      for future conversations.
+Analyze the user's message and determine whether it
+contains useful information that should be remembered
+for future conversations.
 
-      Remember information such as:
-      - User preferences
-      - Long-term goals
-      - Work habits
-      - Stable facts that improve future assistance
-      - Recurring preferences or workflows
+Remember:
+- User preferences
+- Long-term goals
+- Work habits
+- Stable facts that improve future assistance
+- Recurring preferences or workflows
 
-      Do NOT remember:
-      - Normal task requests
-      - Temporary actions
-      - Casual conversation
-      - One-time instructions
-      - Information unlikely to be useful later
+Do NOT remember:
+- Normal task requests
+- Temporary actions
+- Casual conversation
+- One-time instructions
+- Information unlikely to be useful later
 
-      If the message contains useful long-term information:
-      - shouldRemember must be true
-      - memory must contain a concise description of the useful information
+Return ONLY valid JSON in this format:
 
-      Otherwise:
-      - shouldRemember must be false
-      - memory must be null
-    `,
+{
+  "shouldRemember": true,
+  "memory": "A concise description of the information"
+}
 
-    input: message,
+If there is nothing worth remembering:
 
-    text: {
-      format: zodTextFormat(
-        memoryExtractionSchema,
-        "memory_extraction"
-      ),
+{
+  "shouldRemember": false,
+  "memory": null
+}
+`,
+      },
+      {
+        role: "user",
+        content: message,
+      },
+    ],
+
+    format: {
+      type: "object",
+      properties: {
+        shouldRemember: {
+          type: "boolean",
+        },
+        memory: {
+          type: ["string", "null"],
+        },
+      },
+      required: ["shouldRemember", "memory"],
     },
   });
 
-  if (!response.output_parsed) {
-    throw new Error("Memory extraction returned no structured result");
-  }
+  const parsed = JSON.parse(response.message.content);
 
-  return response.output_parsed;
+  return memoryExtractionSchema.parse(parsed);
 }

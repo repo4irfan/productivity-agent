@@ -28,3 +28,29 @@ export async function listMemories(): Promise<Memory[]> {
     .sort({ createdAt: -1 })
     .toArray();
 }
+
+
+export async function searchMemories(
+  query: string
+): Promise<Memory[]> {
+  const words = query
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((word) => word.length > 2);
+
+  if (words.length === 0) {
+    return [];
+  }
+
+  const memories = await memoriesCollection
+    .find()
+    .toArray();
+
+  return memories.filter((memory) => {
+    const content = memory.content.toLowerCase();
+
+    return words.some((word) =>
+      content.includes(word)
+    );
+  });
+}

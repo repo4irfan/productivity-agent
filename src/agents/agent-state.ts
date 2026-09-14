@@ -1,5 +1,9 @@
-import type { ResponseInputItem } from "openai/resources/responses/responses";
+export type AgentMessage = {
+  role: "system" | "user" | "assistant" | "tool";
+  content: string;
+  tool_name?: string;
+};
 
 export type AgentState = {
-  conversation: ResponseInputItem[];
+  conversation: AgentMessage[];
 };
