@@ -1,5 +1,5 @@
 import { ollamaAgent } from "./llm/ollama-agent";
-import type { AgentState } from "./agents/agent-state";
+import { createAgentState } from "./agents/conversation-manager";
 import readline from "node:readline/promises";
 
 const rl = readline.createInterface({
@@ -7,31 +7,40 @@ const rl = readline.createInterface({
   output: process.stdout,
 });
 
-const state: AgentState = {
-  conversation: [],
-};
-
 async function main() {
-    
+  const state = await createAgentState();
+
+  console.log(`Conversation ID: ${state.conversationId}`);
+
+  try {
     while (true) {
-        const message = await rl.question("You: ");
+      const message = await rl.question("You: ");
 
-        if (message.toLowerCase() === "exit") {
-            break;
-        }
+      const trimmedMessage = message.trim();
 
-        const response = await ollamaAgent(
-          state,
-          message
-        );
+      if (!trimmedMessage) {
+        continue;
+      }
 
-        console.log("Agent:", response);
+      if (trimmedMessage.toLowerCase() === "exit") {
+        break;
+      }
+
+      const response = await ollamaAgent(
+        state,
+        trimmedMessage
+      );
+
+      console.log("Agent:", response);
     }
-
+  } finally {
     rl.close();
-    console.log("Goodbye!");
-    // 🚀 FORCE THE PROCESS TO TERMINATE IMMEDIATELY
-    process.exit(0); 
+  }
+
+  console.log("Goodbye!");
 }
 
-main();
+main().catch((error) => {
+  console.error("Application error:", error);
+  process.exitCode = 1;
+});

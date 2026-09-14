@@ -8,6 +8,8 @@ import { remember } from "../tools/memory-tools";
 
 import type { AgentState } from "../agents/agent-state";
 
+import { persistAgentState } from "../agents/conversation-manager";
+
 const MODEL = "qwen2.5:7b";
 
 export async function ollamaAgent(
@@ -89,6 +91,8 @@ Rules:
         content: response.message.content,
       });
 
+      await persistAgentState(state);
+
       return response.message.content;
     }
 
@@ -118,6 +122,8 @@ Rules:
 
       messages.push(toolMessage);
       state.conversation.push(toolMessage);
+
+      await persistAgentState(state);
     }
   }
 }
