@@ -39,6 +39,7 @@ export async function persistAgentState(
   await saveConversation({
     id: state.conversationId,
     messages: state.conversation,
+    summary: state.summary,
     createdAt: new Date(),
     updatedAt: new Date(),
   });

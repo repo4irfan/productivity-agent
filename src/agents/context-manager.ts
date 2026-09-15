@@ -21,11 +21,12 @@ export async function manageConversationContext(
   );
 
   const newSummary =
-    await summarizeConversation(oldMessages);
+  await summarizeConversation(
+    oldMessages,
+    state.summary
+  );
 
-  state.summary = state.summary
-    ? `${state.summary}\n${newSummary}`
-    : newSummary;
+  state.summary = newSummary;
 
   state.conversation = recentMessages;
 }

@@ -5,7 +5,8 @@ import type { AgentMessage } from "../agents/agent-state";
 const MODEL = "qwen2.5:7b";
 
 export async function summarizeConversation(
-  messages: AgentMessage[]
+  messages: AgentMessage[],
+  existingSummary?: string
 ): Promise<string> {
   const conversationText = messages
     .map(
@@ -13,6 +14,13 @@ export async function summarizeConversation(
         `${message.role}: ${message.content}`
     )
     .join("\n");
+
+  const existingSummaryText = existingSummary
+    ? `
+Existing conversation summary:
+${existingSummary}
+`
+    : "";
 
   const response = await ollama.chat({
     model: MODEL,
@@ -23,24 +31,42 @@ export async function summarizeConversation(
         content: `
 You summarize conversations for a productivity assistant.
 
-Create a concise summary containing information that
-is useful for continuing the conversation.
+Create ONE concise, updated summary of the conversation.
+
+You may receive:
+1. An existing summary
+2. Older conversation messages
+
+Combine them into a single improved summary.
 
 Preserve:
 - Important decisions
 - User requests
 - Important task context
-- References that may be needed later
-- Relevant user preferences mentioned in the conversation
+- References needed to continue the conversation
+- Relevant user preferences
+- Important unresolved issues
 
-Do not include unnecessary conversational details.
+Remove:
+- Repeated information
+- Greetings
+- Small talk
+- Temporary conversational details
+- Information that is no longer useful
 
-Return only the summary text.
+Do not mention that you are creating or updating a summary.
+
+Return only the final summary text.
 `,
       },
       {
         role: "user",
-        content: conversationText,
+        content: `
+${existingSummaryText}
+
+Older conversation messages:
+${conversationText}
+`,
       },
     ],
   });
