@@ -12,6 +12,7 @@ export async function createAgentState(): Promise<AgentState> {
   return {
     conversationId: conversation.id,
     conversation: conversation.messages,
+    summary: conversation.summary,
   };
 }
 
@@ -28,6 +29,7 @@ export async function loadAgentState(
   return {
     conversationId: conversation.id,
     conversation: conversation.messages,
+    summary: conversation.summary,
   };
 }
 

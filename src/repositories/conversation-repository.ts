@@ -4,6 +4,7 @@ import type { AgentMessage } from "../agents/agent-state";
 export type Conversation = {
   id: string;
   messages: AgentMessage[];
+  summary?: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -40,6 +41,7 @@ export async function saveConversation(
     {
       $set: {
         messages: conversation.messages,
+        summary: conversation.summary,
         updatedAt: new Date(),
       },
     },

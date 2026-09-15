@@ -7,4 +7,5 @@ export type AgentMessage = {
 export type AgentState = {
   conversationId: string;
   conversation: AgentMessage[];
+  summary?: string;
 };
