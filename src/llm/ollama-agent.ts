@@ -114,35 +114,9 @@ ${summaryContext}
     });
 
     console.log(
-  "Ollama response:",
-  JSON.stringify(response, null, 2)
-);
-
-    // Add assistant message to model context
-    messages.push(response.message);
-
-    // --------------------------------
-    // 6a. Tool call
-    // --------------------------------
-
-    if (response.message.tool_calls?.length) {
-      state.conversation.push({
-        role: "assistant",
-        content: response.message.content,
-        tool_calls: response.message.tool_calls.map(
-          (toolCall) => ({
-            name: toolCall.function.name,
-            arguments: toolCall.function.arguments,
-          })
-        ),
-      });
-
-      await persistAgentState(state);
-    }
-
-    // --------------------------------
-    // 6b. No tool call → final answer
-    // --------------------------------
+      "Ollama response:",
+      JSON.stringify(response, null, 2)
+    );
 
     if (!response.message.tool_calls?.length) {
       const content = response.message.content.trim();
@@ -166,6 +140,10 @@ ${summaryContext}
         continue;
       }
 
+      // Only add valid assistant responses
+      // to the Ollama conversation.
+      messages.push(response.message);
+
       state.conversation.push({
         role: "assistant",
         content,
@@ -174,6 +152,52 @@ ${summaryContext}
       await persistAgentState(state);
 
       return content;
+    }
+
+    // Add assistant tool-call message
+    // only when it actually contains tool calls.
+    messages.push(response.message);
+
+    state.conversation.push({
+      role: "assistant",
+      content: response.message.content,
+      tool_calls: response.message.tool_calls.map(
+        (toolCall) => ({
+          name: toolCall.function.name,
+          arguments: toolCall.function.arguments,
+        })
+      ),
+    });
+
+    await persistAgentState(state);
+
+    for (const toolCall of response.message.tool_calls) {
+      const toolName = toolCall.function.name;
+
+      const toolArguments = JSON.stringify(
+        toolCall.function.arguments
+      );
+
+      console.log("\nTool requested:", toolName);
+      console.log("Arguments:", toolArguments);
+
+      const result = await executeTool(
+        toolName,
+        toolArguments
+      );
+
+      console.log("Tool result:", result);
+
+      const toolMessage = {
+        role: "tool" as const,
+        tool_name: toolName,
+        content: JSON.stringify(result),
+      };
+
+      messages.push(toolMessage);
+      state.conversation.push(toolMessage);
+
+      await persistAgentState(state);
     }
 
     // --------------------------------
