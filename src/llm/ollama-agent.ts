@@ -103,7 +103,9 @@ ${summaryContext}
   // --------------------------------
   // 5. Agent tool-calling loop
   // --------------------------------
-
+  let emptyResponseRetries = 0;
+  const MAX_EMPTY_RESPONSE_RETRIES = 2;
+  
   while (true) {
     const response = await ollama.chat({
       model: MODEL,
@@ -111,22 +113,67 @@ ${summaryContext}
       tools: ollamaTools,
     });
 
+    console.log(
+  "Ollama response:",
+  JSON.stringify(response, null, 2)
+);
+
     // Add assistant message to model context
     messages.push(response.message);
 
     // --------------------------------
-    // 6. No tool call → final answer
+    // 6a. Tool call
     // --------------------------------
 
-    if (!response.message.tool_calls?.length) {
+    if (response.message.tool_calls?.length) {
       state.conversation.push({
         role: "assistant",
         content: response.message.content,
+        tool_calls: response.message.tool_calls.map(
+          (toolCall) => ({
+            name: toolCall.function.name,
+            arguments: toolCall.function.arguments,
+          })
+        ),
+      });
+
+      await persistAgentState(state);
+    }
+
+    // --------------------------------
+    // 6b. No tool call → final answer
+    // --------------------------------
+
+    if (!response.message.tool_calls?.length) {
+      const content = response.message.content.trim();
+
+      if (!content) {
+        emptyResponseRetries++;
+
+        console.warn(
+          `Ollama returned an empty response. Retry ${emptyResponseRetries}/${MAX_EMPTY_RESPONSE_RETRIES}`
+        );
+
+        if (
+          emptyResponseRetries >=
+          MAX_EMPTY_RESPONSE_RETRIES
+        ) {
+          throw new Error(
+            "Ollama returned an empty response after multiple retries."
+          );
+        }
+
+        continue;
+      }
+
+      state.conversation.push({
+        role: "assistant",
+        content,
       });
 
       await persistAgentState(state);
 
-      return response.message.content;
+      return content;
     }
 
     // --------------------------------
