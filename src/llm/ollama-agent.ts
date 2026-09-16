@@ -104,20 +104,32 @@ ${summaryContext}
   // 5. Agent tool-calling loop
   // --------------------------------
 
-  let emptyResponseRetries = 0;
-  const MAX_EMPTY_RESPONSE_RETRIES = 2;
+let emptyResponseRetries = 0;
+const MAX_EMPTY_RESPONSE_RETRIES = 2;
 
-  while (true) {
+let toolLoopCount = 0;
+const MAX_TOOL_LOOPS = 5;
+
+while (true) {
+
+    toolLoopCount++;
+
+    if (toolLoopCount > MAX_TOOL_LOOPS) {
+      throw new Error(
+        "Agent exceeded the maximum number of tool execution steps."
+      );
+    }
+    
     const response = await ollama.chat({
       model: MODEL,
       messages,
       tools: ollamaTools,
     });
 
-    console.log(
-      "Ollama response:",
-      JSON.stringify(response, null, 2)
-    );
+    //console.log(
+    //  "Ollama response:",
+    //  JSON.stringify(response, null, 2)
+    //);
 
     if (!response.message.tool_calls?.length) {
       const content = response.message.content.trim();
