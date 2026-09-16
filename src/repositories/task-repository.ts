@@ -27,11 +27,13 @@ export async function createTask(title: string): Promise<Task> {
 
   await tasksCollection.insertOne(task);
 
-  return task;
+  return toTask(task);
 }
 
 export async function listTasks(): Promise<Task[]> {
-  return tasksCollection.find().toArray();
+  const tasks = await tasksCollection.find().toArray();
+
+  return tasks.map(toTask);
 }
 
 export async function completeTask(
@@ -39,17 +41,11 @@ export async function completeTask(
 ): Promise<Task | null> {
   const result = await tasksCollection.findOneAndUpdate(
     { id },
-    {
-      $set: {
-        completed: true,
-      },
-    },
-    {
-      returnDocument: "after",
-    }
+    { $set: { completed: true } },
+    { returnDocument: "after" }
   );
 
-  return result;
+  return result ? toTask(result) : null;
 }
 
 export async function deleteTask(
@@ -63,5 +59,13 @@ export async function deleteTask(
 
   await tasksCollection.deleteOne({ id });
 
-  return task;
+  return toTask(task);
+}
+
+function toTask(document: Task): Task {
+  return {
+    id: document.id,
+    title: document.title,
+    completed: document.completed,
+  };
 }

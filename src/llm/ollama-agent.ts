@@ -103,9 +103,10 @@ ${summaryContext}
   // --------------------------------
   // 5. Agent tool-calling loop
   // --------------------------------
+
   let emptyResponseRetries = 0;
   const MAX_EMPTY_RESPONSE_RETRIES = 2;
-  
+
   while (true) {
     const response = await ollama.chat({
       model: MODEL,
@@ -140,8 +141,6 @@ ${summaryContext}
         continue;
       }
 
-      // Only add valid assistant responses
-      // to the Ollama conversation.
       messages.push(response.message);
 
       state.conversation.push({
@@ -154,8 +153,6 @@ ${summaryContext}
       return content;
     }
 
-    // Add assistant tool-call message
-    // only when it actually contains tool calls.
     messages.push(response.message);
 
     state.conversation.push({
@@ -195,50 +192,6 @@ ${summaryContext}
       };
 
       messages.push(toolMessage);
-      state.conversation.push(toolMessage);
-
-      await persistAgentState(state);
-    }
-
-    // --------------------------------
-    // 7. Execute requested tools
-    // --------------------------------
-
-    for (const toolCall of response.message.tool_calls) {
-      const toolName = toolCall.function.name;
-
-      const toolArguments = JSON.stringify(
-        toolCall.function.arguments
-      );
-
-      console.log(
-        "\nTool requested:",
-        toolName
-      );
-
-      console.log(
-        "Arguments:",
-        toolArguments
-      );
-
-      const result = await executeTool(
-        toolName,
-        toolArguments
-      );
-
-      console.log(
-        "Tool result:",
-        result
-      );
-
-      const toolMessage = {
-        role: "tool" as const,
-        tool_name: toolName,
-        content: JSON.stringify(result),
-      };
-
-      messages.push(toolMessage);
-
       state.conversation.push(toolMessage);
 
       await persistAgentState(state);
