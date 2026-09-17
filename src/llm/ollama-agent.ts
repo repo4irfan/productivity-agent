@@ -122,8 +122,9 @@ while (true) {
     toolLoopCount++;
 
     if (toolLoopCount > MAX_TOOL_LOOPS) {
-      throw new Error(
-        "Agent exceeded the maximum number of tool execution steps."
+      return failGracefully(
+        state,
+        "Exceeded the maximum number of tool execution steps."
       );
     }
 
@@ -153,7 +154,8 @@ while (true) {
           emptyResponseRetries >=
           MAX_EMPTY_RESPONSE_RETRIES
         ) {
-          throw new Error(
+          return failGracefully(
+            state,
             "Ollama returned an empty response after multiple retries."
           );
         }
@@ -217,4 +219,23 @@ while (true) {
       await persistAgentState(state);
     }
   }
+}
+
+async function failGracefully(
+  state: AgentState,
+  reason: string
+): Promise<string> {
+    console.error("Agent failure:", reason);
+
+    const content =
+      "I ran into a problem and couldn't finish that request. Please try again.";
+
+    state.conversation.push({
+      role: "assistant",
+      content,
+    });
+
+    await persistAgentState(state);
+
+    return content;
 }

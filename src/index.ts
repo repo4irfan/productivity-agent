@@ -58,12 +58,20 @@ async function main() {
         break;
       }
 
-      const response = await ollamaAgent(
-        state,
-        trimmedMessage
-      );
+      try {
+        const response = await ollamaAgent(
+          state,
+          trimmedMessage
+        );
 
-      console.log("Agent:", response);
+        console.log("Agent:", response);
+      } catch (error) {
+        console.error("Unexpected error:", error);
+
+        console.log(
+          "Agent: Something went wrong. Please try again."
+        );
+      }
     }
   } finally {
     rl.close();
