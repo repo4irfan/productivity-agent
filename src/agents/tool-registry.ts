@@ -62,25 +62,51 @@ const createTaskTool: AgentTool<
 };
 
 const listTasksTool: AgentTool<
-  Record<string, never>,
+  {
+    status?: "open" | "completed" | "all";
+    priority?: "low" | "medium" | "high";
+    due?: "overdue" | "today" | "this_week" | "no_due_date";
+  },
   Awaited<ReturnType<typeof listTasks>>
 > = {
   name: "list_tasks",
 
-  description: "List all productivity tasks.",
+  description:
+    "List tasks, optionally filtered. By default returns only open (incomplete) tasks.",
 
-  schema: z.object({}),
+  schema: z.object({
+    status: z.enum(["open", "completed", "all"]).optional(),
+    priority: z.enum(["low", "medium", "high"]).optional(),
+    due: z
+      .enum(["overdue", "today", "this_week", "no_due_date"])
+      .optional(),
+  }),
 
   openAISchema: {
     type: "object",
-    properties: {},
+    properties: {
+      status: {
+        type: "string",
+        enum: ["open", "completed", "all"],
+        description: "Which tasks to include. Defaults to open.",
+      },
+      priority: {
+        type: "string",
+        enum: ["low", "medium", "high"],
+        description: "Only tasks with this priority.",
+      },
+      due: {
+        type: "string",
+        enum: ["overdue", "today", "this_week", "no_due_date"],
+        description:
+          "Filter by due date: overdue (past due and not completed), today, this_week (next 7 days), or no_due_date.",
+      },
+    },
     required: [],
     additionalProperties: false,
   },
 
-  execute: async () => {
-    return listTasks();
-  },
+  execute: async (filter) => listTasks(filter),
 };
 
 const findTasksTool: AgentTool<

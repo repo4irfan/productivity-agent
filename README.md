@@ -254,10 +254,13 @@ The project will continue evolving toward a production-oriented AI agent.
 - [x] Context summarization
 - [x] Structured tool-call history
 - [x] Empty-response handling
+- [x] Clean and normalize tool results
+- [x] Tool error handling and agent reliability
+- [x] Task model with priority and due dates
+- [x] Task filtering (status, priority, due date)
 
 ### Planned
 
-- [ ] Clean and normalize tool results
 - [ ] Semantic memory search
 - [ ] Embeddings
 - [ ] Vector search

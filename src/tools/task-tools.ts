@@ -8,14 +8,23 @@ import {
 
 import { ToolError } from "../agents/tool-error";
 
-export type { Task, Priority, CreateTaskInput } from "../repositories/task-repository";
+import type {
+  Task,
+  Priority,
+  CreateTaskInput,
+  TaskFilter,
+} from "../repositories/task-repository";
+
+export type { Task, Priority, CreateTaskInput, TaskFilter };
 
 export async function createTask(input: CreateTaskInput): Promise<Task> {
   return createTaskInDb(input);
 }
 
-export async function listTasks(): Promise<Task[]> {
-  return listTasksFromDb();
+export async function listTasks(
+  filter: TaskFilter = {}
+): Promise<Task[]> {
+  return listTasksFromDb(filter);
 }
 
 export async function findTasks(query: string): Promise<Task[]> {

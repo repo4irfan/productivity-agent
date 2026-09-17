@@ -1,4 +1,4 @@
-import { MongoClient } from "mongodb";
+import { MongoClient, type Filter } from "mongodb";
 
 export type Priority = "low" | "medium" | "high";
 
@@ -10,6 +10,12 @@ export type Task = {
   dueDate: string | null;   // "YYYY-MM-DD"
   createdAt: Date;
   completedAt: Date | null;
+};
+
+export type TaskFilter = {
+  status?: "open" | "completed" | "all";
+  priority?: Priority;
+  due?: "overdue" | "today" | "this_week" | "no_due_date";
 };
 
 const client = new MongoClient("mongodb://localhost:27018");
@@ -48,10 +54,42 @@ export async function createTask(
   return toTask(task);
 }
 
-export async function listTasks(): Promise<Task[]> {
-  const tasks = await tasksCollection.find().toArray();
+export async function listTasks(
+  filter: TaskFilter = {}
+): Promise<Task[]> {
+  const query: Filter<Task> = {};
 
-  return tasks.map(toTask);
+  const status = filter.status ?? "open";
+
+  if (status !== "all") {
+    query.completed = status === "completed";
+  }
+
+  if (filter.priority) {
+    query.priority = filter.priority;
+  }
+
+  const today = new Date().toLocaleDateString("en-CA");
+
+  switch (filter.due) {
+    case "overdue":
+      query.dueDate = { $lt: today };
+      query.completed = false;
+      break;
+    case "today":
+      query.dueDate = today;
+      break;
+    case "this_week":
+      query.dueDate = { $gte: today, $lte: addDays(today, 6) };
+      break;
+    case "no_due_date":
+      query.dueDate = null;
+      break;
+  }
+
+  const tasks = await tasksCollection.find(query).toArray();
+
+  return tasks.map(toTask).sort(byDueDate);
 }
 
 export async function findTasks(query: string): Promise<Task[]> {
@@ -100,4 +138,17 @@ function toTask(document: Task): Task {
     createdAt: document.createdAt ?? new Date(0),
     completedAt: document.completedAt ?? null,
   };
+}
+
+function addDays(isoDate: string, days: number): string {
+  const date = new Date(`${isoDate}T00:00:00`);
+  date.setDate(date.getDate() + days);
+  return date.toLocaleDateString("en-CA");
+}
+
+function byDueDate(a: Task, b: Task): number {
+  if (a.dueDate === b.dueDate) return 0;
+  if (a.dueDate === null) return 1;
+  if (b.dueDate === null) return -1;
+  return a.dueDate < b.dueDate ? -1 : 1;
 }
