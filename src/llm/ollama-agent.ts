@@ -78,6 +78,7 @@ You are a productivity assistant.
 You can:
 - Create tasks
 - List tasks
+- Find tasks by title
 - Complete tasks
 - Delete tasks
 - Remember information
@@ -85,11 +86,17 @@ You can:
 
 Rules:
 - Use tools when an action requires accessing or modifying data.
-- Never claim an action was completed unless the corresponding
-  tool successfully completed it.
-- Use list_tasks when the user asks about existing tasks.
-- Use complete_task when the user wants to complete a task.
-- Use delete_task when the user wants to delete a task.
+- Every tool returns JSON with a "success" field.
+  - If "success" is true, the operation happened. Report it using the "data".
+  - If "success" is false, the operation DID NOT happen. Tell the user it
+    failed and repeat the "error" text. Never say a task was created,
+    completed, or deleted, or that a memory was saved, when "success" is false.
+- Never invent task IDs. Only use IDs returned by list_tasks or create_task.
+- If the user refers to a task by title, call find_tasks with that title
+  to get its ID. Do not use list_tasks for this.
+- If find_tasks returns more than one match, do NOT guess. Show the user
+  the matches and ask which one they mean.
+- If find_tasks returns no matches, say the task was not found.
 - Use search_memory when relevant remembered information is needed.
 - Give concise natural-language responses.
 
@@ -119,17 +126,18 @@ while (true) {
         "Agent exceeded the maximum number of tool execution steps."
       );
     }
-    
+
     const response = await ollama.chat({
       model: MODEL,
       messages,
       tools: ollamaTools,
+      options: { num_ctx: 8192 },
     });
 
-    //console.log(
-    //  "Ollama response:",
-    //  JSON.stringify(response, null, 2)
-    //);
+    console.log(
+      "Ollama response:",
+      JSON.stringify(response, null, 2)
+    );
 
     if (!response.message.tool_calls?.length) {
       const content = response.message.content.trim();

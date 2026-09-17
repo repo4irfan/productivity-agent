@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   createTask,
   listTasks,
+  findTasks,
   completeTask,
   deleteTask,
 } from "../tools/task-tools";
@@ -65,6 +66,34 @@ const listTasksTool: AgentTool<
   execute: async () => {
     return listTasks();
   },
+};
+
+const findTasksTool: AgentTool<
+  { query: string },
+  Awaited<ReturnType<typeof findTasks>>
+> = {
+  name: "find_tasks",
+
+  description:
+    "Find tasks whose title contains the given text. Use this to look up a task's ID when the user refers to it by name.",
+
+  schema: z.object({
+    query: z.string().min(1),
+  }),
+
+  openAISchema: {
+    type: "object",
+    properties: {
+      query: {
+        type: "string",
+        description: "Text to search for in task titles (case-insensitive).",
+      },
+    },
+    required: ["query"],
+    additionalProperties: false,
+  },
+
+  execute: async ({ query }) => findTasks(query),
 };
 
 const completeTaskTool: AgentTool<
@@ -210,6 +239,7 @@ const searchMemoryTool: AgentTool<
 export const toolRegistry = {
   create_task: createTaskTool,
   list_tasks: listTasksTool,
+  find_tasks: findTasksTool,
   complete_task: completeTaskTool,
   delete_task: deleteTaskTool,
 

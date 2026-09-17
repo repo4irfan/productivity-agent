@@ -79,4 +79,13 @@ describe("executeTool", () => {
             error: "Task not found.",
         });
     });
+
+    it("registers find_tasks", async () => {
+        const result = await executeTool(
+            "find_tasks",
+            JSON.stringify({ query: "zzz-no-such-task" })
+        );
+
+        expect(result).toEqual({ success: true, data: [] });
+    });
 });

@@ -1,6 +1,7 @@
 import {
   createTask as createTaskInDb,
   listTasks as listTasksFromDb,
+  findTasks as findTasksInDb,
   completeTask as completeTaskInDb,
   deleteTask as deleteTaskFromDb,
 } from "../repositories/task-repository";
@@ -19,6 +20,10 @@ export async function createTask(title: string): Promise<Task> {
 
 export async function listTasks(): Promise<Task[]> {
   return listTasksFromDb();
+}
+
+export async function findTasks(query: string): Promise<Task[]> {
+  return findTasksInDb(query);
 }
 
 export async function completeTask(id: string): Promise<Task> {

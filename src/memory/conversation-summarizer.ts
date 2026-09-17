@@ -69,6 +69,7 @@ ${conversationText}
 `,
       },
     ],
+    options: { num_ctx: 8192 },
   });
 
   return response.message.content.trim();

@@ -36,6 +36,16 @@ export async function listTasks(): Promise<Task[]> {
   return tasks.map(toTask);
 }
 
+export async function findTasks(query: string): Promise<Task[]> {
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  const tasks = await tasksCollection
+    .find({ title: { $regex: escaped, $options: "i" } })
+    .toArray();
+
+  return tasks.map(toTask);
+}
+
 export async function completeTask(
   id: string
 ): Promise<Task | null> {

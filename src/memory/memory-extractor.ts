@@ -75,6 +75,7 @@ If there is nothing worth remembering:
       },
       required: ["shouldRemember", "memory"],
     },
+    options: { num_ctx: 8192 },
   });
 
   const parsed = JSON.parse(response.message.content);
