@@ -8,14 +8,10 @@ import {
 
 import { ToolError } from "../agents/tool-error";
 
-export type Task = {
-  id: string;
-  title: string;
-  completed: boolean;
-};
+export type { Task, Priority, CreateTaskInput } from "../repositories/task-repository";
 
-export async function createTask(title: string): Promise<Task> {
-  return createTaskInDb(title);
+export async function createTask(input: CreateTaskInput): Promise<Task> {
+  return createTaskInDb(input);
 }
 
 export async function listTasks(): Promise<Task[]> {

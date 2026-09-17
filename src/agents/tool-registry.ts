@@ -18,15 +18,22 @@ import type { AgentTool } from "./tool-types";
 
 
 const createTaskTool: AgentTool<
-  { title: string },
+  {
+    title: string;
+    priority?: "low" | "medium" | "high";
+    dueDate?: string;
+  },
   Awaited<ReturnType<typeof createTask>>
 > = {
   name: "create_task",
 
-  description: "Create a new productivity task.",
+  description:
+    "Create a new productivity task with an optional priority and due date.",
 
   schema: z.object({
     title: z.string().min(1),
+    priority: z.enum(["low", "medium", "high"]).optional(),
+    dueDate: z.iso.date().nullable().optional(),
   }),
 
   openAISchema: {
@@ -36,14 +43,22 @@ const createTaskTool: AgentTool<
         type: "string",
         description: "The title of the task",
       },
+      priority: {
+        type: "string",
+        enum: ["low", "medium", "high"],
+        description: "Task priority. Defaults to medium.",
+      },
+      dueDate: {
+        type: "string",
+        description:
+          "Due date in YYYY-MM-DD format. Omit if the user gave no due date.",
+      },
     },
     required: ["title"],
     additionalProperties: false,
   },
 
-  execute: async ({ title }) => {
-    return createTask(title);
-  },
+  execute: async (input) => createTask(input),
 };
 
 const listTasksTool: AgentTool<

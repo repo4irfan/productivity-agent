@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { toolRegistry } from "./tool-registry";
 import { ToolError } from "./tool-error";
 
@@ -42,18 +43,17 @@ export async function executeTool(
       };
     }
 
-    let validatedArgs: unknown;
+    const parsed = tool.schema.safeParse(args);
 
-    try {
-      validatedArgs = tool.schema.parse(args);
-    } catch {
+    if (!parsed.success) {
       return {
         success: false,
-        error: "Invalid tool arguments.",
+        error: `Invalid tool arguments: ${z.prettifyError(parsed.error)}`,
       };
     }
 
-    const result = await tool.execute(validatedArgs);
+    const result = await tool.execute(parsed.data);
+
 
     return {
       success: true,

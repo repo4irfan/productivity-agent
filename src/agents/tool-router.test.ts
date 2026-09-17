@@ -35,9 +35,9 @@ describe("executeTool", () => {
       })
     );
 
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       success: false,
-      error: "Invalid tool arguments.",
+      error: expect.stringContaining("Invalid tool arguments"),
     });
   });
 

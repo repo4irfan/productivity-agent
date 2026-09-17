@@ -1,9 +1,15 @@
 import { MongoClient } from "mongodb";
 
+export type Priority = "low" | "medium" | "high";
+
 export type Task = {
   id: string;
   title: string;
   completed: boolean;
+  priority: Priority;
+  dueDate: string | null;   // "YYYY-MM-DD"
+  createdAt: Date;
+  completedAt: Date | null;
 };
 
 const client = new MongoClient("mongodb://localhost:27018");
@@ -18,11 +24,23 @@ export async function connectDatabase() {
   console.log("MongoDB connected");
 }
 
-export async function createTask(title: string): Promise<Task> {
+export type CreateTaskInput = {
+  title: string;
+  priority?: Priority;
+  dueDate?: string | null;
+};
+
+export async function createTask(
+  input: CreateTaskInput
+): Promise<Task> {
   const task: Task = {
     id: crypto.randomUUID(),
-    title,
+    title: input.title,
     completed: false,
+    priority: input.priority ?? "medium",
+    dueDate: input.dueDate ?? null,
+    createdAt: new Date(),
+    completedAt: null,
   };
 
   await tasksCollection.insertOne(task);
@@ -51,7 +69,7 @@ export async function completeTask(
 ): Promise<Task | null> {
   const result = await tasksCollection.findOneAndUpdate(
     { id },
-    { $set: { completed: true } },
+    { $set: { completed: true, completedAt: new Date() } },
     { returnDocument: "after" }
   );
 
@@ -77,5 +95,9 @@ function toTask(document: Task): Task {
     id: document.id,
     title: document.title,
     completed: document.completed,
+    priority: document.priority ?? "medium",
+    dueDate: document.dueDate ?? null,
+    createdAt: document.createdAt ?? new Date(0),
+    completedAt: document.completedAt ?? null,
   };
 }

@@ -99,7 +99,12 @@ Rules:
 - If find_tasks returns no matches, say the task was not found.
 - Use search_memory when relevant remembered information is needed.
 - Give concise natural-language responses.
+- When the user mentions a due date (e.g. "tomorrow", "next Friday", "Sept 25"),
+  convert it to YYYY-MM-DD using today's date and pass it as dueDate.
+- When the user mentions urgency or importance, set priority accordingly.
 
+Calendar (use this to convert relative dates to YYYY-MM-DD — do not calculate dates yourself):
+${buildCalendarContext()}
 ${summaryContext}
 `,
     },
@@ -238,4 +243,23 @@ async function failGracefully(
     await persistAgentState(state);
 
     return content;
+}
+
+function buildCalendarContext(): string {
+  const lines: string[] = [];
+
+  for (let offset = 0; offset < 14; offset++) {
+    const date = new Date();
+    date.setDate(date.getDate() + offset);
+
+    const iso = date.toLocaleDateString("en-CA");
+    const weekday = date.toLocaleDateString("en-US", { weekday: "long" });
+
+    const label =
+      offset === 0 ? "today" : offset === 1 ? "tomorrow" : `in ${offset} days`;
+
+    lines.push(`${iso} = ${weekday} (${label})`);
+  }
+
+  return lines.join("\n");
 }
