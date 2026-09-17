@@ -4,6 +4,7 @@ import {
   findTasks as findTasksInDb,
   completeTask as completeTaskInDb,
   deleteTask as deleteTaskFromDb,
+  getDailyBriefing as getDailyBriefingFromDb,
 } from "../repositories/task-repository";
 
 import { ToolError } from "../agents/tool-error";
@@ -49,4 +50,9 @@ export async function deleteTask(id: string): Promise<Task> {
   }
 
   return task;
+}
+
+
+export async function getDailyBriefing(): Promise<DailyBriefing> {
+  return getDailyBriefingFromDb();
 }

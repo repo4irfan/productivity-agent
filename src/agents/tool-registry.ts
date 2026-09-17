@@ -6,6 +6,7 @@ import {
   findTasks,
   completeTask,
   deleteTask,
+  getDailyBriefing,
 } from "../tools/task-tools";
 
 import {
@@ -195,6 +196,27 @@ const deleteTaskTool: AgentTool<
   },
 };
 
+const getDailyBriefingTool: AgentTool<
+  Record<string, never>,
+  Awaited<ReturnType<typeof getDailyBriefing>>
+> = {
+  name: "get_daily_briefing",
+
+  description:
+    "Get an overview for planning the day: overdue tasks, tasks due today, tasks due this week, and high-priority tasks. Use this when the user asks what to work on or wants a plan.",
+
+  schema: z.object({}),
+
+  openAISchema: {
+    type: "object",
+    properties: {},
+    required: [],
+    additionalProperties: false,
+  },
+
+  execute: async () => getDailyBriefing(),
+};
+
 const rememberTool: AgentTool<
   { content: string },
   Awaited<ReturnType<typeof remember>>
@@ -283,6 +305,7 @@ export const toolRegistry = {
   find_tasks: findTasksTool,
   complete_task: completeTaskTool,
   delete_task: deleteTaskTool,
+  get_daily_briefing: getDailyBriefingTool,
 
   remember: rememberTool,
   get_memories: getMemoriesTool,

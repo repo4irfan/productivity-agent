@@ -36,6 +36,15 @@ export type CreateTaskInput = {
   dueDate?: string | null;
 };
 
+
+export type DailyBriefing = {
+  today: string;
+  overdue: Task[];
+  dueToday: Task[];
+  dueThisWeek: Task[];
+  highPriority: Task[];
+};
+
 export async function createTask(
   input: CreateTaskInput
 ): Promise<Task> {
@@ -126,6 +135,24 @@ export async function deleteTask(
   await tasksCollection.deleteOne({ id });
 
   return toTask(task);
+}
+
+export async function getDailyBriefing(): Promise<DailyBriefing> {
+  const [overdue, dueToday, dueThisWeek, highPriority] =
+    await Promise.all([
+      listTasks({ due: "overdue" }),
+      listTasks({ due: "today" }),
+      listTasks({ due: "this_week" }),
+      listTasks({ priority: "high" }),
+    ]);
+
+  return {
+    today: new Date().toLocaleDateString("en-CA"),
+    overdue,
+    dueToday,
+    dueThisWeek,
+    highPriority,
+  };
 }
 
 function toTask(document: Task): Task {
