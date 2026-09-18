@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { toolRegistry } from "./tool-registry";
 import { ToolError } from "./tool-error";
+import type { AnyAgentTool } from "./tool-types";
 
 type ToolName = keyof typeof toolRegistry;
 
@@ -30,7 +31,7 @@ export async function executeTool(
       };
     }
 
-    const tool = toolRegistry[name];
+    const tool: AnyAgentTool = toolRegistry[name];
 
     let args: unknown;
 

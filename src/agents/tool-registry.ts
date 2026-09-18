@@ -23,7 +23,7 @@ const createTaskTool: AgentTool<
   {
     title: string;
     priority?: "low" | "medium" | "high";
-    dueDate?: string;
+    dueDate?: string | null;
   },
   Awaited<ReturnType<typeof createTask>>
 > = {

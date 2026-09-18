@@ -1,8 +1,15 @@
 import { z } from "zod";
 
+export type ToolParameterProperty = {
+  type?: string | string[];
+  description?: string;
+  enum?: unknown[];
+  items?: unknown;
+};
+
 export type OpenAIToolParameters = {
   type: "object";
-  properties: Record<string, unknown>;
+  properties: Record<string, ToolParameterProperty>;
   required: string[];
   additionalProperties: false;
 };
@@ -14,3 +21,6 @@ export type AgentTool<TArgs, TResult> = {
   openAISchema: OpenAIToolParameters;
   execute: (args: TArgs) => Promise<TResult>;
 };
+
+// Loosened view of any registered tool, used by the router.
+export type AnyAgentTool = AgentTool<any, unknown>;

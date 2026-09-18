@@ -1,4 +1,4 @@
-import ollama from "ollama";
+import ollama, { type Message } from "ollama";
 
 import { ollamaTools } from "./ollama-tools";
 import { executeTool } from "../agents/tool-router";
@@ -69,7 +69,7 @@ ${state.summary}
 `
     : "";
 
-  const messages: ollama.Message[] = [
+  const messages: Message[] = [
     {
       role: "system",
       content: `

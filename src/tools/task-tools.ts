@@ -16,10 +16,17 @@ import type {
   CreateTaskInput,
   UpdateTaskInput,
   TaskFilter,
+  DailyBriefing,
 } from "../repositories/task-repository";
 
-export type { Task, Priority, CreateTaskInput, TaskFilter };
-
+export type {
+  Task,
+  Priority,
+  CreateTaskInput,
+  UpdateTaskInput,
+  TaskFilter,
+  DailyBriefing,
+};
 
 export type UpdateTaskToolInput = {
   id: string;
