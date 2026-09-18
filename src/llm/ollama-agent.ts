@@ -1,4 +1,4 @@
-import ollama, { type Message } from "ollama";
+import ollama, { type Message, type ToolCall } from "ollama";
 
 import { ollamaTools } from "./ollama-tools";
 import { executeTool } from "../agents/tool-router";
@@ -199,12 +199,11 @@ while (true) {
     state.conversation.push({
       role: "assistant",
       content: response.message.content,
-      tool_calls: response.message.tool_calls.map(
-        (toolCall) => ({
-          name: toolCall.function.name,
-          arguments: toolCall.function.arguments,
-        })
-      ),
+      tool_calls: response.message.tool_calls.map((toolCall) => ({
+        id: getToolCallId(toolCall),
+        name: toolCall.function.name,
+        arguments: toolCall.function.arguments,
+      })),
     });
 
     await persistAgentState(state);
@@ -228,6 +227,7 @@ while (true) {
 
       const toolMessage = {
         role: "tool" as const,
+        tool_call_id: getToolCallId(toolCall),
         tool_name: toolName,
         content: JSON.stringify(result),
       };
@@ -276,4 +276,12 @@ function buildCalendarContext(): string {
   }
 
   return lines.join("\n");
+}
+
+function getToolCallId(toolCall: ToolCall): string {
+  const maybeId = (toolCall as { id?: unknown }).id;
+
+  return typeof maybeId === "string" && maybeId
+    ? maybeId
+    : `call_${crypto.randomUUID()}`;
 }

@@ -1,4 +1,5 @@
 export type AgentToolCall = {
+  id: string;
   name: string;
   arguments: Record<string, unknown>;
 };
@@ -15,6 +16,7 @@ export type AgentMessage =
     }
   | {
       role: "tool";
+      tool_call_id: string;
       tool_name: string;
       content: string;
     };
