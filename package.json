@@ -1,7 +1,7 @@
 {
   "name": "productivity-agent",
   "version": "1.0.0",
-  "main": "index.js", 
+  "main": "index.js",
   "type": "module",
   "scripts": {
     "test": "vitest run",
@@ -22,6 +22,7 @@
     "dotenv": "^17.4.2",
     "mongodb": "^7.6.0",
     "ollama": "^0.6.3",
+    "openai": "^7.18.0",
     "zod": "^4.5.4"
   }
 }
