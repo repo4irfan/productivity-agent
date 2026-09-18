@@ -36,6 +36,11 @@ export type CreateTaskInput = {
   dueDate?: string | null;
 };
 
+export type UpdateTaskInput = {
+  title?: string;
+  priority?: Priority;
+  dueDate?: string | null;
+};
 
 export type DailyBriefing = {
   today: string;
@@ -61,6 +66,19 @@ export async function createTask(
   await tasksCollection.insertOne(task);
 
   return toTask(task);
+}
+
+export async function updateTask(
+  id: string,
+  changes: UpdateTaskInput
+): Promise<Task | null> {
+  const result = await tasksCollection.findOneAndUpdate(
+    { id },
+    { $set: changes },
+    { returnDocument: "after" }
+  );
+
+  return result ? toTask(result) : null;
 }
 
 export async function listTasks(

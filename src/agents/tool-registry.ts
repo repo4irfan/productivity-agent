@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import {
   createTask,
+  updateTask,
   listTasks,
   findTasks,
   completeTask,
@@ -60,6 +61,61 @@ const createTaskTool: AgentTool<
   },
 
   execute: async (input) => createTask(input),
+};
+
+const updateTaskTool: AgentTool<
+  {
+    id: string;
+    title?: string | null;
+    priority?: "low" | "medium" | "high" | null;
+    dueDate?: string | null;
+    clearDueDate?: boolean | null;
+  },
+  Awaited<ReturnType<typeof updateTask>>
+> = {
+  name: "update_task",
+
+  description:
+    "Change a task's title, priority, or due date. Only include the fields that should change.",
+
+  schema: z.object({
+    id: z.string().uuid(),
+    title: z.string().min(1).nullable().optional(),
+    priority: z.enum(["low", "medium", "high"]).nullable().optional(),
+    dueDate: z.iso.date().nullable().optional(),
+    clearDueDate: z.boolean().nullable().optional(),
+  }),
+
+  openAISchema: {
+    type: "object",
+    properties: {
+      id: {
+        type: "string",
+        description: "The ID of the task to update.",
+      },
+      title: {
+        type: ["string", "null"],
+        description: "New title, or null to leave unchanged.",
+      },
+      priority: {
+        type: ["string", "null"],
+        enum: ["low", "medium", "high", null],
+        description: "New priority, or null to leave unchanged.",
+      },
+      dueDate: {
+        type: ["string", "null"],
+        description: "New due date in YYYY-MM-DD, or null to leave unchanged.",
+      },
+      clearDueDate: {
+        type: ["boolean", "null"],
+        description: "true to remove the due date.",
+      },
+    },
+    required: ["id"],
+    additionalProperties: false,
+  },
+
+  execute: async (input) => updateTask(input),
 };
 
 const listTasksTool: AgentTool<
@@ -301,6 +357,7 @@ const searchMemoryTool: AgentTool<
 
 export const toolRegistry = {
   create_task: createTaskTool,
+  update_task: updateTaskTool,
   list_tasks: listTasksTool,
   find_tasks: findTasksTool,
   complete_task: completeTaskTool,
