@@ -1,4 +1,5 @@
-import { ollamaAgent } from "./llm/ollama-agent";
+import "dotenv/config";
+import { runAgent } from "./agents/agent";
 import {
   createAgentState,
   loadAgentState,
@@ -59,7 +60,7 @@ async function main() {
       }
 
       try {
-        const response = await ollamaAgent(
+        const response = await runAgent(
           state,
           trimmedMessage
         );

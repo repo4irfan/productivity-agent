@@ -1,24 +1,16 @@
-import ollama, { type Message, type ToolCall } from "ollama";
-
-import { ollamaTools } from "./ollama-tools";
-import { executeTool } from "../agents/tool-router";
+import { executeTool } from "./tool-router";
+import { toolDefinitions } from "./tool-definitions";
+import { getLLMClient } from "../llm";
 
 import { extractMemory } from "../memory/memory-extractor";
 import { remember } from "../tools/memory-tools";
 
-import type { AgentState } from "../agents/agent-state";
+import type { AgentState } from "./agent-state";
+import { persistAgentState } from "./conversation-manager";
+import { manageConversationContext } from "./context-manager";
 
-import {
-  persistAgentState,
-} from "../agents/conversation-manager";
 
-import {
-  manageConversationContext,
-} from "../agents/context-manager";
-
-const MODEL = "qwen2.5:7b";
-
-export async function ollamaAgent(
+export async function runAgent(
   state: AgentState,
   latestMessage: string
 ) {
@@ -68,11 +60,8 @@ Previous conversation summary:
 ${state.summary}
 `
     : "";
-
-  const messages: Message[] = [
-    {
-      role: "system",
-      content: `
+  
+    const system = `
 You are a productivity assistant.
 
 You can:
@@ -120,11 +109,7 @@ Rules:
 Calendar (use this to convert relative dates to YYYY-MM-DD — do not calculate dates yourself):
 ${buildCalendarContext()}
 ${summaryContext}
-`,
-    },
-
-    ...state.conversation,
-  ];
+`;
 
   // --------------------------------
   // 5. Agent tool-calling loop
@@ -135,6 +120,8 @@ const MAX_EMPTY_RESPONSE_RETRIES = 2;
 
 let toolLoopCount = 0;
 const MAX_TOOL_LOOPS = 5;
+
+const llm = getLLMClient();
 
 while (true) {
 
@@ -147,93 +134,63 @@ while (true) {
       );
     }
 
-    const response = await ollama.chat({
-      model: MODEL,
-      messages,
-      tools: ollamaTools,
-      options: { num_ctx: 8192 },
+    const response = await llm.chat({
+      system,
+      messages: state.conversation,
+      tools: toolDefinitions,
     });
 
-    console.log(
-      "Ollama response:",
-      JSON.stringify(response, null, 2)
-    );
-
-    if (!response.message.tool_calls?.length) {
-      const content = response.message.content.trim();
+    if (response.toolCalls.length === 0) {
+      const content = response.content.trim();
 
       if (!content) {
         emptyResponseRetries++;
 
         console.warn(
-          `Ollama returned an empty response. Retry ${emptyResponseRetries}/${MAX_EMPTY_RESPONSE_RETRIES}`
+          `LLM returned an empty response. Retry ${emptyResponseRetries}/${MAX_EMPTY_RESPONSE_RETRIES}`
         );
 
-        if (
-          emptyResponseRetries >=
-          MAX_EMPTY_RESPONSE_RETRIES
-        ) {
+        if (emptyResponseRetries >= MAX_EMPTY_RESPONSE_RETRIES) {
           return failGracefully(
             state,
-            "Ollama returned an empty response after multiple retries."
+            "LLM returned an empty response after multiple retries."
           );
         }
 
         continue;
       }
 
-      messages.push(response.message);
-
-      state.conversation.push({
-        role: "assistant",
-        content,
-      });
+      state.conversation.push({ role: "assistant", content });
 
       await persistAgentState(state);
 
       return content;
     }
 
-    messages.push(response.message);
-
     state.conversation.push({
       role: "assistant",
-      content: response.message.content,
-      tool_calls: response.message.tool_calls.map((toolCall) => ({
-        id: getToolCallId(toolCall),
-        name: toolCall.function.name,
-        arguments: toolCall.function.arguments,
-      })),
+      content: response.content,
+      tool_calls: response.toolCalls,
     });
 
     await persistAgentState(state);
 
-    for (const toolCall of response.message.tool_calls) {
-      const toolName = toolCall.function.name;
+    for (const toolCall of response.toolCalls) {
+      const toolArguments = JSON.stringify(toolCall.arguments);
 
-      const toolArguments = JSON.stringify(
-        toolCall.function.arguments
-      );
-
-      console.log("\nTool requested:", toolName);
+      console.log("\nTool requested:", toolCall.name);
       console.log("Arguments:", toolArguments);
 
-      const result = await executeTool(
-        toolName,
-        toolArguments
-      );
+      const result = await executeTool(toolCall.name, toolArguments);
 
       console.log("Tool result:", result);
 
-      const toolMessage = {
-        role: "tool" as const,
-        tool_call_id: getToolCallId(toolCall),
-        tool_name: toolName,
+      state.conversation.push({
+        role: "tool",
+        tool_call_id: toolCall.id,
+        tool_name: toolCall.name,
         content: JSON.stringify(result),
-      };
-
-      messages.push(toolMessage);
-      state.conversation.push(toolMessage);
+      });
 
       await persistAgentState(state);
     }
@@ -276,12 +233,4 @@ function buildCalendarContext(): string {
   }
 
   return lines.join("\n");
-}
-
-function getToolCallId(toolCall: ToolCall): string {
-  const maybeId = (toolCall as { id?: unknown }).id;
-
-  return typeof maybeId === "string" && maybeId
-    ? maybeId
-    : `call_${crypto.randomUUID()}`;
 }

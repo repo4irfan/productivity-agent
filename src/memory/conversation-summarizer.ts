@@ -1,8 +1,5 @@
-import ollama from "ollama";
-
 import type { AgentMessage } from "../agents/agent-state";
-
-const MODEL = "qwen2.5:7b";
+import { getLLMClient } from "../llm";
 
 export async function summarizeConversation(
   messages: AgentMessage[],
@@ -22,13 +19,9 @@ ${existingSummary}
 `
     : "";
 
-  const response = await ollama.chat({
-    model: MODEL,
 
-    messages: [
-      {
-        role: "system",
-        content: `
+    const response = await getLLMClient().chat({
+    system: `
 You summarize conversations for a productivity assistant.
 
 Create ONE concise, updated summary of the conversation.
@@ -58,7 +51,7 @@ Do not mention that you are creating or updating a summary.
 
 Return only the final summary text.
 `,
-      },
+    messages: [
       {
         role: "user",
         content: `
@@ -69,8 +62,7 @@ ${conversationText}
 `,
       },
     ],
-    options: { num_ctx: 8192 },
   });
 
-  return response.message.content.trim();
+  return response.content.trim();
 }
