@@ -10,6 +10,7 @@ import type { AgentMessage } from "../agents/agent-state";
 
 import type {
   LLMClient,
+  EmbeddingClient,
   LLMChatRequest,
   LLMChatResponse,
   LLMToolCall,
@@ -18,15 +19,29 @@ import type {
 
 export type OpenAIClientOptions = {
   model: string;
+  embeddingModel: string;
   apiKey?: string;
   debug?: boolean;
 };
 
-export class OpenAIClient implements LLMClient {
+export class OpenAIClient implements LLMClient, EmbeddingClient {
   private readonly client: OpenAI;
 
   constructor(private readonly options: OpenAIClientOptions) {
     this.client = new OpenAI({ apiKey: options.apiKey });
+  }
+
+  get embeddingModel(): string {
+    return this.options.embeddingModel;
+  }
+
+  async embed(texts: string[]): Promise<number[][]> {
+    const response = await this.client.embeddings.create({
+      model: this.options.embeddingModel,
+      input: texts,
+    });
+
+    return response.data.map((item) => item.embedding);
   }
 
   async chat(request: LLMChatRequest): Promise<LLMChatResponse> {

@@ -4,6 +4,7 @@ import type { AgentMessage } from "../agents/agent-state";
 
 import type {
   LLMClient,
+  EmbeddingClient,
   LLMChatRequest,
   LLMChatResponse,
   LLMToolCall,
@@ -12,12 +13,26 @@ import type {
 
 export type OllamaClientOptions = {
   model: string;
+  embeddingModel: string;
   numCtx?: number;
   debug?: boolean;
 };
 
-export class OllamaClient implements LLMClient {
+export class OllamaClient implements LLMClient, EmbeddingClient {
   constructor(private readonly options: OllamaClientOptions) {}
+
+  get embeddingModel(): string {
+    return this.options.embeddingModel;
+  }
+
+  async embed(texts: string[]): Promise<number[][]> {
+    const response = await ollama.embed({
+      model: this.options.embeddingModel,
+      input: texts,
+    });
+
+    return response.embeddings;
+  }
 
   async chat(request: LLMChatRequest): Promise<LLMChatResponse> {
     const response = await ollama.chat({

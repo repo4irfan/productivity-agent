@@ -1,4 +1,5 @@
 import { db } from "../repositories/task-repository";
+import { getEmbeddingClient } from "../llm";
 
 export type Memory = {
   id: string;
@@ -6,29 +7,52 @@ export type Memory = {
   createdAt: Date;
 };
 
-const memoriesCollection = db.collection<Memory>("memories");
+// What is actually stored. The vector never leaves the repository.
+type MemoryDocument = Memory & {
+  embedding: number[];
+  embeddingModel: string;
+};
 
-export async function saveMemory(
-  content: string
-): Promise<Memory> {
-  const memory: Memory = {
+const memoriesCollection = db.collection<MemoryDocument>("memories");
+
+export async function saveMemory(content: string): Promise<Memory> {
+  const embeddings = getEmbeddingClient();
+
+  const [embedding] = await embeddings.embed([content]);
+
+  if (!embedding) {
+    throw new Error("Embedding client returned no vector.");
+  }
+
+  const document: MemoryDocument = {
     id: crypto.randomUUID(),
     content,
     createdAt: new Date(),
+    embedding,
+    embeddingModel: embeddings.embeddingModel,
   };
 
-  await memoriesCollection.insertOne(memory);
+  await memoriesCollection.insertOne(document);
 
-  return memory;
+  return toMemory(document);
 }
 
 export async function listMemories(): Promise<Memory[]> {
-  return memoriesCollection
-    .find()
+  const documents = await memoriesCollection
+    .find({}, { projection: { embedding: 0 } })
     .sort({ createdAt: -1 })
     .toArray();
+
+  return documents.map(toMemory);
 }
 
+function toMemory(document: Memory): Memory {
+  return {
+    id: document.id,
+    content: document.content,
+    createdAt: document.createdAt,
+  };
+}
 
 export async function searchMemories(
   query: string

@@ -28,3 +28,8 @@ export type LLMChatResponse = {
 export interface LLMClient {
   chat(request: LLMChatRequest): Promise<LLMChatResponse>;
 }
+
+export interface EmbeddingClient {
+  readonly embeddingModel: string;
+  embed(texts: string[]): Promise<number[][]>;
+}

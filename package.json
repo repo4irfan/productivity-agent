@@ -6,7 +6,8 @@
   "scripts": {
     "test": "vitest run",
     "dev": "tsx src/index.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "backfill:embeddings": "tsx scripts/backfill-embeddings.ts"
   },
   "keywords": [],
   "author": "",
