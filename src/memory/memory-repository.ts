@@ -1,5 +1,6 @@
 import { db } from "../repositories/task-repository";
 import { getEmbeddingClient } from "../llm";
+import { cosineSimilarity } from "./vector-math";
 
 export type Memory = {
   id: string;
@@ -13,9 +14,30 @@ type MemoryDocument = Memory & {
   embeddingModel: string;
 };
 
+export type MemorySearchResult = Memory & {
+  score: number;
+};
+
+export type SaveMemoryResult = {
+  memory: Memory;
+  created: boolean;
+};
+
+const DUPLICATE_THRESHOLD = 0.9;
+// Below this, nomic-embed-text scores are noise (unrelated queries score ~0.4–0.5).
+const MIN_SEARCH_SCORE = 0.5;
+
 const memoriesCollection = db.collection<MemoryDocument>("memories");
 
-export async function saveMemory(content: string): Promise<Memory> {
+export async function saveMemory(content: string): Promise<SaveMemoryResult> {
+
+  const [existing] = await searchMemories(content, 1);
+
+  if (existing && existing.score >= DUPLICATE_THRESHOLD) {
+    const { score, ...memory } = existing;
+    return { memory, created: false };
+  }
+
   const embeddings = getEmbeddingClient();
 
   const [embedding] = await embeddings.embed([content]);
@@ -34,7 +56,7 @@ export async function saveMemory(content: string): Promise<Memory> {
 
   await memoriesCollection.insertOne(document);
 
-  return toMemory(document);
+  return { memory: toMemory(document), created: true };
 }
 
 export async function listMemories(): Promise<Memory[]> {
@@ -55,26 +77,31 @@ function toMemory(document: Memory): Memory {
 }
 
 export async function searchMemories(
-  query: string
-): Promise<Memory[]> {
-  const words = query
-    .toLowerCase()
-    .split(/\s+/)
-    .filter((word) => word.length > 2);
+  query: string,
+  limit = 5
+): Promise<MemorySearchResult[]> {
+  const embeddings = getEmbeddingClient();
 
-  if (words.length === 0) {
-    return [];
+  const [queryVector] = await embeddings.embed([query]);
+
+  if (!queryVector) {
+    throw new Error("Embedding client returned no vector.");
   }
 
-  const memories = await memoriesCollection
-    .find()
+  const documents = await memoriesCollection
+    .find({ embeddingModel: embeddings.embeddingModel })
     .toArray();
 
-  return memories.filter((memory) => {
-    const content = memory.content.toLowerCase();
+  return documents
+    .map((document) => ({
+      ...toMemory(document),
+      score: round(cosineSimilarity(queryVector, document.embedding)),
+    }))
+    .sort((a, b) => b.score - a.score)
+    .filter((result) => result.score >= MIN_SEARCH_SCORE)
+    .slice(0, limit);
+}
 
-    return words.some((word) =>
-      content.includes(word)
-    );
-  });
+function round(value: number): number {
+  return Math.round(value * 1000) / 1000;
 }

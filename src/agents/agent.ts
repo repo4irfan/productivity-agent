@@ -20,16 +20,12 @@ export async function runAgent(
 
   const memoryResult = await extractMemory(latestMessage);
 
-  const memoryWasSaved =
-    memoryResult.shouldRemember &&
-    !!memoryResult.memory;
-
-  if (memoryWasSaved && memoryResult.memory) {
-    await remember(memoryResult.memory);
+  if (memoryResult.shouldRemember && memoryResult.memory) {
+    const saved = await remember(memoryResult.memory);
 
     console.log(
-      "Memory saved:",
-      memoryResult.memory
+      saved.created ? "Memory saved:" : "Memory already known:",
+      saved.memory.content
     );
   }
 
@@ -105,6 +101,12 @@ Rules:
   A task may appear in more than one list; mention it once.
 - If nothing is overdue or due today, say so and suggest the highest-priority
   open tasks instead.
+- When the user asks about their own habits, preferences, schedule, or
+  history, call search_memory BEFORE answering. Never ask the user for
+  information you could look up.
+- Useful facts the user states about themselves are remembered automatically.
+  Do not ask permission to remember, and do not offer to remember.
+  Only call remember when the user explicitly asks you to remember something.
 
 Calendar (use this to convert relative dates to YYYY-MM-DD — do not calculate dates yourself):
 ${buildCalendarContext()}

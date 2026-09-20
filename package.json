@@ -7,7 +7,9 @@
     "test": "vitest run",
     "dev": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
-    "backfill:embeddings": "tsx scripts/backfill-embeddings.ts"
+    "backfill:embeddings": "tsx scripts/backfill-embeddings.ts",
+    "search:memories": "tsx scripts/search-memories.ts",
+    "dedupe:memories": "tsx scripts/dedupe-memories.ts"
   },
   "keywords": [],
   "author": "",

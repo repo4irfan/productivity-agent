@@ -31,11 +31,25 @@ Remember:
 - Recurring preferences or workflows
 
 Do NOT remember:
+- Questions. A question the user asks is NEVER a memory, no matter how
+  useful the answer would be.
+- Anything phrased as "the user wants to know" or "the user asked"
 - Normal task requests
 - Temporary actions
 - Casual conversation
 - One-time instructions
 - Information unlikely to be useful later
+
+Examples:
+
+"I prefer working on backend tasks in the morning"
+→ { "shouldRemember": true, "memory": "Prefers working on backend tasks in the morning." }
+
+"when am I most productive?"
+→ { "shouldRemember": false, "memory": null }
+
+"create a task called fix login bug"
+→ { "shouldRemember": false, "memory": null }
 
 Return ONLY valid JSON in this format:
 

@@ -334,7 +334,7 @@ const searchMemoryTool: AgentTool<
   name: "search_memory",
 
   description:
-    "Search the user's stored memories for information relevant to a query.",
+    "Semantic search over what is remembered about the user. Describe what you are looking for in natural language, e.g. 'when does the user like to do focused work'.",
 
   schema: z.object({
     query: z.string().min(1),
