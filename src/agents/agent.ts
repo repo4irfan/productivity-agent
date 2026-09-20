@@ -8,7 +8,10 @@ import { remember } from "../tools/memory-tools";
 import type { AgentState } from "./agent-state";
 import { persistAgentState } from "./conversation-manager";
 import { manageConversationContext } from "./context-manager";
-
+import {
+  retrieveRelevantMemories,
+  formatMemoryContext,
+} from "../memory/memory-retriever";
 
 export async function runAgent(
   state: AgentState,
@@ -28,6 +31,21 @@ export async function runAgent(
       saved.memory.content
     );
   }
+
+    // --------------------------------
+  // 1b. Retrieve relevant memories
+  // --------------------------------
+
+  const relevantMemories = await retrieveRelevantMemories(latestMessage);
+
+  if (relevantMemories.length > 0) {
+    console.log(
+      "Relevant memories:",
+      relevantMemories.map((memory) => memory.content)
+    );
+  }
+
+  const memoryContext = formatMemoryContext(relevantMemories);
 
   // --------------------------------
   // 2. Add user message to state
@@ -101,9 +119,9 @@ Rules:
   A task may appear in more than one list; mention it once.
 - If nothing is overdue or due today, say so and suggest the highest-priority
   open tasks instead.
-- When the user asks about their own habits, preferences, schedule, or
-  history, call search_memory BEFORE answering. Never ask the user for
-  information you could look up.
+- Relevant memories are shown under "What you know about the user". Use them
+  directly when answering. Call search_memory only when the user asks about
+  something not shown there.
 - Useful facts the user states about themselves are remembered automatically.
   Do not ask permission to remember, and do not offer to remember.
   Only call remember when the user explicitly asks you to remember something.
@@ -111,6 +129,7 @@ Rules:
 Calendar (use this to convert relative dates to YYYY-MM-DD — do not calculate dates yourself):
 ${buildCalendarContext()}
 ${summaryContext}
+${memoryContext}
 `;
 
   // --------------------------------
@@ -185,7 +204,7 @@ while (true) {
 
       const result = await executeTool(toolCall.name, toolArguments);
 
-      console.log("Tool result:", result);
+      console.log("Tool result:", JSON.stringify(result, null, 2));
 
       state.conversation.push({
         role: "tool",
