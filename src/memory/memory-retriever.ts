@@ -20,8 +20,8 @@ export function formatMemoryContext(memories: Memory[]): string {
 
   const lines = memories.map((memory) => `- ${memory.content}`);
 
-  return `
-What you know about the user (from earlier conversations):
-${lines.join("\n")}
+  return `[Context — what you know about the user from earlier conversations:
+${lines.join("\n")}]
+
 `;
 }

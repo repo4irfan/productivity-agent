@@ -4,14 +4,14 @@ import { getLLMClient } from "../llm";
 
 import { extractMemory } from "../memory/memory-extractor";
 import { remember } from "../tools/memory-tools";
-
-import type { AgentState } from "./agent-state";
 import { persistAgentState } from "./conversation-manager";
 import { manageConversationContext } from "./context-manager";
 import {
   retrieveRelevantMemories,
   formatMemoryContext,
 } from "../memory/memory-retriever";
+
+import type { AgentState, AgentMessage } from "./agent-state";
 
 export async function runAgent(
   state: AgentState,
@@ -129,7 +129,6 @@ Rules:
 Calendar (use this to convert relative dates to YYYY-MM-DD — do not calculate dates yourself):
 ${buildCalendarContext()}
 ${summaryContext}
-${memoryContext}
 `;
 
   // --------------------------------
@@ -157,7 +156,7 @@ while (true) {
 
     const response = await llm.chat({
       system,
-      messages: state.conversation,
+      messages: withContextInLastUserMessage(state.conversation, memoryContext),
       tools: toolDefinitions,
     });
 
@@ -254,4 +253,28 @@ function buildCalendarContext(): string {
   }
 
   return lines.join("\n");
+}
+
+// Per-turn context goes into the latest user message rather than the
+// system prompt, so the cached prefix (system + earlier history) survives.
+// Applied at send time only — the stored conversation stays clean.
+function withContextInLastUserMessage(
+  messages: AgentMessage[],
+  context: string
+): AgentMessage[] {
+  if (!context) {
+    return messages;
+  }
+
+  const index = messages.findLastIndex((message) => message.role === "user");
+
+  if (index === -1) {
+    return messages;
+  }
+
+  return messages.map((message, i) =>
+    i === index && message.role === "user"
+      ? { ...message, content: `${context}\n${message.content}` }
+      : message
+  );
 }
