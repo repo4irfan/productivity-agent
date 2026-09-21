@@ -2,133 +2,116 @@
 
 A TypeScript-based AI productivity agent built from scratch to learn and implement the core concepts behind modern AI agents.
 
-The project intentionally avoids agent frameworks such as Mastra so that the underlying concepts—LLM interaction, tool calling, memory, context management, persistence, and agent loops—can be understood and implemented directly.
+The project intentionally avoids agent frameworks such as Mastra so that the underlying concepts—LLM interaction, tool calling, memory, retrieval, context management, persistence, and agent loops—can be understood and implemented directly.
 
 ## 🚀 Current Stack
 
-- **TypeScript**
+- **TypeScript** (type-checked build)
 - **Node.js**
-- **Ollama**
-- **Qwen 2.5 7B**
-- **MongoDB**
-- **Docker**
+- **Ollama** — `qwen2.5:7b` for chat, `nomic-embed-text` for embeddings
+- **OpenAI** — optional, swappable via `.env`
+- **MongoDB** (Docker)
 - **Zod**
+- **Vitest**
 
 ## ✨ Current Features
 
 ### AI Agent
 
-- Local LLM integration using Ollama
-- Agent loop with iterative tool execution
-- Structured tool-call handling
-- Provider-neutral agent state
-- Empty-response handling and retries
+- Agent loop with iterative tool execution and a hard step limit
+- Structured tool-call handling with provider-neutral message format
+- Empty-response retries and graceful failure (the CLI never crashes on an agent error)
+- Provider abstraction: the same agent runs on Ollama or OpenAI by changing `LLM_PROVIDER`
 
-### Tool Calling
+### Tasks
 
-The agent can currently:
-
-- Create tasks
-- List tasks
-- Complete tasks
-- Delete tasks
-- Store memories
-- Retrieve memories
-- Search memories
-
-Tools are validated using Zod before execution.
-
-### Memory
-
-The agent supports long-term memory:
-
-- Automatic memory extraction
-- Persistent memory storage in MongoDB
-- Keyword-based memory search
-- Memory retrieval through tools
+- Create, update, complete, delete tasks
+- Priority (`low` / `medium` / `high`) and due dates
+- Find tasks by title
+- List tasks filtered by status, priority, or due date (overdue, today, this week)
+- Daily briefing: overdue, due today, due this week, and high-priority tasks in one call
 
 Example:
 
 ```text
-User:
-I prefer working on backend tasks in the morning.
+You: what should I focus on this morning?
 
-Agent:
-[Extracts and stores the preference]
+Agent: Given your preference for backend work in the morning, start with
+"Write report" (high priority, overdue), then "Friday Test" (due tomorrow)...
 ```
 
-Later:
+### Memory
+
+- Automatic extraction of stable facts from user messages
+- Embeddings stored alongside each memory
+- Semantic (vector) search with cosine similarity
+- Near-duplicate detection before saving
+- Relevant memories retrieved automatically every turn and injected into the model context
+
+Example:
 
 ```text
-User:
-When should I work on backend tasks?
+You: I prefer working on backend tasks in the morning.
+Agent: [memory saved]
 
-Agent:
-You prefer working on backend tasks in the morning.
+...later, in a new conversation...
+
+You: when am I most productive?
+Agent: You prefer deep work before noon, especially on backend tasks.
 ```
+
+### Documents (RAG)
+
+- Ingest markdown or text files
+- Heading-aware chunking
+- Vector search over chunks
+- Parent-document expansion: when several hits come from one small document, the whole document is returned in order
+- The agent answers only from retrieved passages and cites the document
 
 ### Conversation Persistence
 
-Conversations are persisted in MongoDB.
+- Conversations are stored in MongoDB and can be resumed by ID
+- Messages, structured tool calls, tool results, and summaries are all persisted
+- Older messages are summarized automatically once the conversation grows; the cut always lands on a user turn so tool-call/result pairs are never split
 
-The agent supports:
+### Reliability
 
-- Creating conversations
-- Resuming conversations using a conversation ID
-- Persisting messages
-- Persisting structured tool calls
-- Persisting tool results
-- Persisting conversation summaries
-
-Example conversation history:
-
-```text
-User
-  ↓
-Assistant → tool call
-  ↓
-Tool result
-  ↓
-Assistant → final response
-```
-
-### Context Management
-
-The agent manages growing conversations by separating context into:
-
-```text
-Recent conversation
-        +
-Conversation summary
-        +
-Long-term memory
-```
-
-Older conversation messages can be summarized while recent messages are retained.
+- Every tool returns a predictable `{ success, data }` or `{ success, error }` shape
+- Zod validation errors are fed back to the model so it can self-correct
+- Internal errors (database, network) are converted into safe messages before reaching the model
+- Malformed tool arguments, unknown tools, and missing resources are all handled
 
 ## 🏗️ Architecture
-
-The project is intentionally organized into separate layers:
 
 ```text
 src/
 ├── agents/
-│   ├── agent-state.ts
-│   ├── context-manager.ts
+│   ├── agent.ts                 # the agent loop
+│   ├── agent-state.ts           # provider-neutral message format
+│   ├── context-manager.ts       # summarization trigger
 │   ├── conversation-manager.ts
-│   ├── tool-registry.ts
-│   ├── tool-router.ts
-│   └── tool-types.ts
+│   ├── tool-definitions.ts      # registry → neutral tool schemas
+│   ├── tool-registry.ts         # every tool: name, description, Zod schema, execute
+│   ├── tool-router.ts           # lookup → parse → validate → execute → normalize
+│   ├── tool-types.ts
+│   └── tool-error.ts
 │
 ├── llm/
-│   ├── ollama-agent.ts
-│   ├── ollama-client.ts
-│   └── ollama-tools.ts
+│   ├── llm-client.ts            # LLMClient + EmbeddingClient interfaces
+│   ├── ollama-client.ts         # Ollama adapter
+│   ├── openai-client.ts         # OpenAI adapter
+│   └── index.ts                 # provider factory (reads .env)
 │
 ├── memory/
 │   ├── memory-extractor.ts
-│   ├── memory-repository.ts
+│   ├── memory-repository.ts     # save, vector search, dedupe
+│   ├── memory-retriever.ts      # per-turn context injection
+│   ├── vector-math.ts           # cosine similarity
 │   └── conversation-summarizer.ts
+│
+├── rag/
+│   ├── chunker.ts
+│   └── document-repository.ts   # ingest, search, read, parent-document expansion
 │
 ├── repositories/
 │   ├── task-repository.ts
@@ -136,67 +119,72 @@ src/
 │
 ├── tools/
 │   ├── task-tools.ts
-│   └── memory-tools.ts
+│   ├── memory-tools.ts
+│   └── document-tools.ts
 │
-└── index.ts
+└── index.ts                     # CLI
+
+scripts/
+├── ingest.ts                    # ingest a document
+├── search-documents.ts          # inspect retrieval scores
+├── search-memories.ts
+├── backfill-embeddings.ts
+└── dedupe-memories.ts
 ```
 
-The architecture separates:
+The layers:
 
 ```text
-LLM
+LLM provider (Ollama / OpenAI)
  ↓
-Agent
+LLMClient interface
  ↓
-Tool Registry
+Agent loop
  ↓
-Tool Router
+Tool Registry → Tool Router (Zod)
  ↓
-Application Tools
+Application tools
  ↓
 Repositories
  ↓
 MongoDB
 ```
 
-This separation makes it easier to replace the LLM provider, add new tools, and evolve the agent without coupling everything together.
+Only `src/llm/*-client.ts` knows which provider is in use. Everything else works with the neutral message and tool formats.
 
 ## 🧠 Learning Goals
 
-This project is part of my transition from web development to AI engineering.
+This project is part of my transition from web development to AI engineering. The goal is not simply to build a chatbot, but to understand how AI agents work internally. Each step introduces one concept.
 
-The goal is not simply to build a chatbot, but to understand how AI agents work internally.
+Covered so far:
 
-The project is being developed incrementally, with each step introducing a new AI-engineering concept.
+- LLM integration and structured outputs
+- Tool calling, validation, and the agent loop
+- Agent state and conversation persistence
+- Context management and summarization
+- Tool error handling and agent reliability
+- Provider abstraction (Ollama, OpenAI) and prompt-cache-aware prompt layout
+- Embeddings, cosine similarity, vector search
+- Semantic long-term memory with automatic retrieval
+- RAG: chunking, retrieval, parent-document expansion, grounded answers
 
-Current learning areas include:
+### The pattern that kept showing up
 
-- LLM integration
-- Structured outputs
-- Tool calling
-- Agent loops
-- Tool validation
-- Agent state
-- Conversation persistence
-- Long-term memory
-- Context management
-- Conversation summarization
-- Local LLM inference
+**The model decides *what*; code decides *how*.** Every time the agent was asked to do something precise—find a task ID in a long list, convert "next Monday" to a date, gather a daily briefing, decide whether to return a passage or a whole document—a 7B model got it wrong often enough to matter. Each time, the fix was the same: give the model a tool that expresses the *intent* and let deterministic code do the work (`find_tasks`, `get_daily_briefing`, parent-document expansion). Prompt rules alone were never enough.
 
 ## 🛠️ Getting Started
 
 ### Prerequisites
 
-Make sure you have:
-
 - Node.js
 - Docker
 - Ollama
 
-Pull the Qwen model:
+Pull the models:
 
 ```bash
 ollama pull qwen2.5:7b
+ollama pull nomic-embed-text
 ```
 
 Start MongoDB:
@@ -205,97 +193,118 @@ Start MongoDB:
 docker compose up -d
 ```
 
-Install dependencies:
+Install dependencies and configure:
 
 ```bash
 npm install
+cp .env.example .env
 ```
 
-Start the development server:
+`.env`:
+
+```text
+LLM_PROVIDER=ollama          # ollama | openai
+LLM_MODEL=qwen2.5:7b
+EMBEDDING_MODEL=nomic-embed-text
+OLLAMA_NUM_CTX=8192
+DEBUG=false                  # true → print raw model responses
+OPENAI_API_KEY=              # only for LLM_PROVIDER=openai
+```
+
+Run:
 
 ```bash
 npm run dev
 ```
 
-The application will ask for a conversation ID:
-
 ```text
 Conversation ID (press Enter for new):
 ```
 
-Press Enter to create a new conversation, or provide an existing conversation ID to resume one.
+Press Enter for a new conversation, or paste an ID to resume one.
+
+### Ingest documents
+
+```bash
+npm run ingest -- docs/notes/my-note.md "My note"
+```
+
+Then ask the agent about it: `what do my notes say about ...?`
+
+### Scripts
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | start the CLI |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm test` | Vitest |
+| `npm run ingest -- <file> ["Title"]` | chunk, embed, and store a document |
+| `npm run search:documents -- "query"` | show retrieval scores for a query |
+| `npm run search:memories -- "query"` | same, for memories |
+| `npm run backfill:embeddings` | re-embed all memories (after changing embedding model) |
+| `npm run dedupe:memories` | remove near-duplicate memories |
 
 ## 💬 Example
 
 ```text
-You: create a task to learn RAG
+You: create a task called Write report due 2026-09-25, high priority
+Agent: Created "Write report" (high priority, due 2026-09-25).
 
-Agent: Task "learn RAG" has been created successfully.
+You: what's overdue?
+Agent: One task is overdue: "Fix login bug", due 2026-09-18.
+
+You: what are my deployment steps?
+Agent: From your "Deploy checklist": 1. Run the checks ... 6. Commit and tag.
 ```
-
-The agent decides whether a tool is required, executes the appropriate tool, and then generates a natural-language response.
 
 ## 🗺️ Roadmap
 
-The project will continue evolving toward a production-oriented AI agent.
-
 ### Completed
 
-- [x] Basic LLM interaction
-- [x] Structured outputs
-- [x] Tool calling
-- [x] Agent tool loop
-- [x] Tool validation
-- [x] MongoDB persistence
-- [x] Long-term memory
-- [x] Automatic memory extraction
-- [x] Conversation persistence
-- [x] Conversation resume
-- [x] Context summarization
-- [x] Structured tool-call history
-- [x] Empty-response handling
-- [x] Clean and normalize tool results
-- [x] Tool error handling and agent reliability
-- [x] Task model with priority and due dates
-- [x] Task filtering (status, priority, due date)
+- [x] Basic LLM interaction and structured outputs
+- [x] Tool calling, agent loop, Zod validation
+- [x] MongoDB persistence, conversation resume
+- [x] Context summarization and structured tool-call history
+- [x] Tool error handling and graceful failure
+- [x] Task model with priority and due dates; filters; daily briefing
+- [x] LLM provider abstraction (Ollama, OpenAI)
+- [x] Type-checked build
+- [x] Embeddings and vector search
+- [x] Semantic memory with automatic retrieval
+- [x] RAG over documents (chunking, parent-document expansion)
 
 ### Planned
 
-- [ ] Semantic memory search
-- [ ] Embeddings
-- [ ] Vector search
-- [ ] RAG
-- [ ] Better memory retrieval
-- [ ] Workflow orchestration
-- [ ] Human-in-the-loop
-- [ ] MCP integration
-- [ ] Authentication and authorization
-- [ ] Guardrails
-- [ ] Agent evaluation
-- [ ] Observability and tracing
-- [ ] Production deployment
+In the order I intend to tackle them:
+
+- [ ] **Observability and tracing** — per-turn trace of LLM calls, latency, cache hits, tool calls, retrieval scores
+- [ ] **Agent evaluation** — a repeatable test set for tool selection, date handling, grounded answers
+- [ ] **Guardrails** — input/output checks, confirmation before destructive actions
+- [ ] **Human-in-the-loop** — approve or edit tool calls before execution
+- [ ] **Workflow orchestration** — multi-step plans (e.g. weekly review) as code, not prompts
+- [ ] **MCP integration** — expose tools over MCP and consume external MCP servers
+- [ ] **Anthropic adapter** — third provider through the same interface
+- [ ] **Vector database** — replace brute-force cosine when the collection outgrows it
+- [ ] **Authentication and authorization** — multi-user
+- [ ] **Production deployment** — HTTP API, Docker image, hosted MongoDB
 
 ## 🎯 Why No Agent Framework?
 
-This project intentionally starts without an agent framework.
+Frameworks are useful for production, but implementing the fundamentals manually builds a deeper understanding of:
 
-Frameworks are useful for production, but implementing the fundamentals manually helps build a deeper understanding of:
-
-- How tool calling works
-- How an agent loop works
-- How state is maintained
-- How tool results are returned to an LLM
+- How tool calling and the agent loop actually work
+- How state is maintained and persisted
+- How tool results get back to the LLM, and what happens when they're wrong
 - How memory differs from conversation history
-- How context windows are managed
-- How persistence fits into an agent architecture
+- How context windows and prompt caches are managed
+- What an embedding is, and what a vector database is actually solving
+- Why "just add a rule to the prompt" so often isn't enough
 
-Once these fundamentals are understood, frameworks can be evaluated from a much stronger technical foundation.
+Once these are understood, frameworks can be evaluated from a much stronger technical foundation.
 
 ## 📌 Project Status
 
-This project is actively being developed as a hands-on AI engineering learning project.
-
-The architecture and implementation will evolve as new concepts are introduced.
+Actively developed as a hands-on AI engineering learning project. The architecture will keep evolving as new concepts are introduced.
 
 ## 👨‍💻 Author
 
