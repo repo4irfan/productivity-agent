@@ -16,6 +16,11 @@ import {
   searchMemory
 } from "../tools/memory-tools";
 
+import {
+  searchDocuments,
+  listDocuments
+} from "../tools/document-tools";
+
 import type { AgentTool } from "./tool-types";
 
 
@@ -355,6 +360,31 @@ const searchMemoryTool: AgentTool<
   execute: async ({ query }) => searchMemory(query),
 };
 
+const searchDocumentsTool: AgentTool<{ query: string }, Awaited<ReturnType<typeof searchDocuments>>> = {
+  name: "search_documents",
+  description:
+    "Search the user's ingested documents and notes. Returns the most relevant passages with their document title. Use when the user asks about the contents of their notes, docs, or files.",
+  schema: z.object({ query: z.string().min(1) }),
+  openAISchema: {
+    type: "object",
+    properties: {
+      query: { type: "string", description: "What to look for, in natural language." },
+    },
+    required: ["query"],
+    additionalProperties: false,
+  },
+  execute: async ({ query }) => searchDocuments(query),
+};
+
+const listDocumentsTool: AgentTool<Record<string, never>, Awaited<ReturnType<typeof listDocuments>>> = {
+  name: "list_documents",
+  description: "List the documents the user has ingested.",
+  schema: z.object({}),
+  openAISchema: { type: "object", properties: {}, required: [], additionalProperties: false },
+  execute: async () => listDocuments(),
+};
+
+
 export const toolRegistry = {
   create_task: createTaskTool,
   update_task: updateTaskTool,
@@ -367,4 +397,7 @@ export const toolRegistry = {
   remember: rememberTool,
   get_memories: getMemoriesTool,
   search_memory: searchMemoryTool,
+
+  search_documents: searchDocumentsTool,
+  list_documents: listDocumentsTool
 };

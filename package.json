@@ -9,7 +9,9 @@
     "typecheck": "tsc --noEmit",
     "backfill:embeddings": "tsx scripts/backfill-embeddings.ts",
     "search:memories": "tsx scripts/search-memories.ts",
-    "dedupe:memories": "tsx scripts/dedupe-memories.ts"
+    "dedupe:memories": "tsx scripts/dedupe-memories.ts",
+    "ingest": "tsx scripts/ingest.ts",
+    "search:documents": "tsx scripts/search-documents.ts"
   },
   "keywords": [],
   "author": "",
