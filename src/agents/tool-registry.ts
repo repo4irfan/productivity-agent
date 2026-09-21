@@ -17,6 +17,7 @@ import {
 } from "../tools/memory-tools";
 
 import {
+  readDocument,
   searchDocuments,
   listDocuments
 } from "../tools/document-tools";
@@ -360,10 +361,32 @@ const searchMemoryTool: AgentTool<
   execute: async ({ query }) => searchMemory(query),
 };
 
+const readDocumentTool: AgentTool<
+  { title: string },
+  Awaited<ReturnType<typeof readDocument>>
+> = {
+  name: "read_document",
+  description:
+    "Read an entire document, in order. Use for questions like 'what are my deployment steps', 'summarize my notes', or anything asking for all items in a document.",
+  schema: z.object({ title: z.string().min(1) }),
+  openAISchema: {
+    type: "object",
+    properties: {
+      title: {
+        type: "string",
+        description: "The document title (or part of it), as shown by list_documents.",
+      },
+    },
+    required: ["title"],
+    additionalProperties: false,
+  },
+  execute: async ({ title }) => readDocument(title),
+};
+
 const searchDocumentsTool: AgentTool<{ query: string }, Awaited<ReturnType<typeof searchDocuments>>> = {
   name: "search_documents",
   description:
-    "Search the user's ingested documents and notes. Returns the most relevant passages with their document title. Use when the user asks about the contents of their notes, docs, or files.",
+    "Search the user's ingested documents and notes. Returns at most 4 passages — not suitable for listing all steps or summarizing a whole document; use read_document for that.",
   schema: z.object({ query: z.string().min(1) }),
   openAISchema: {
     type: "object",
@@ -398,6 +421,7 @@ export const toolRegistry = {
   get_memories: getMemoriesTool,
   search_memory: searchMemoryTool,
 
+  read_document: readDocumentTool,
   search_documents: searchDocumentsTool,
   list_documents: listDocumentsTool
 };

@@ -11,6 +11,7 @@ import type { AgentMessage } from "../agents/agent-state";
 import type {
   LLMClient,
   EmbeddingClient,
+  EmbedKind,
   LLMChatRequest,
   LLMChatResponse,
   LLMToolCall,
@@ -35,7 +36,7 @@ export class OpenAIClient implements LLMClient, EmbeddingClient {
     return this.options.embeddingModel;
   }
 
-  async embed(texts: string[]): Promise<number[][]> {
+  async embed(texts: string[], _kind: EmbedKind): Promise<number[][]> {
     const response = await this.client.embeddings.create({
       model: this.options.embeddingModel,
       input: texts,

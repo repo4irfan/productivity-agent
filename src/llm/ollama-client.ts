@@ -5,6 +5,7 @@ import type { AgentMessage } from "../agents/agent-state";
 import type {
   LLMClient,
   EmbeddingClient,
+  EmbedKind,
   LLMChatRequest,
   LLMChatResponse,
   LLMToolCall,
@@ -25,10 +26,15 @@ export class OllamaClient implements LLMClient, EmbeddingClient {
     return this.options.embeddingModel;
   }
 
-  async embed(texts: string[]): Promise<number[][]> {
+  async embed(texts: string[], kind: EmbedKind): Promise<number[][]> {
+    const prefix = this.options.embeddingModel.startsWith("nomic-embed-text")
+      ? kind === "query" ? "search_query: " : "search_document: "
+      : "";
+
     const response = await ollama.embed({
       model: this.options.embeddingModel,
-      input: texts,
+      input: texts.map((text) => `${prefix}${text}`),
+      keep_alive: "30m",
     });
 
     return response.embeddings;
@@ -44,6 +50,7 @@ export class OllamaClient implements LLMClient, EmbeddingClient {
       tools: request.tools?.map(toOllamaTool),
       format: request.jsonSchema,
       options: { num_ctx: this.options.numCtx ?? 8192 },
+      keep_alive: "30m",
     });
 
     if (this.options.debug) {

@@ -130,6 +130,12 @@ Rules:
   call search_documents and answer ONLY from the returned passages. Mention
   which document the answer came from. If nothing relevant is returned, say
   you couldn't find it in their documents — do not answer from general knowledge.
+- Use read_document when the question asks for steps, a checklist, a list,
+  a summary, or "everything" in a document. Use search_documents only for
+  one specific fact. search_documents returns at most 4 passages, so it can
+  never give a complete list.
+- Always search or read for a new question, even if earlier results are still
+  in the conversation.
 
 Calendar (use this to convert relative dates to YYYY-MM-DD — do not calculate dates yourself):
 ${buildCalendarContext()}

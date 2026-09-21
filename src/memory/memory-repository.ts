@@ -40,7 +40,7 @@ export async function saveMemory(content: string): Promise<SaveMemoryResult> {
 
   const embeddings = getEmbeddingClient();
 
-  const [embedding] = await embeddings.embed([content]);
+  const [embedding] = await embeddings.embed([content], "document");
 
   if (!embedding) {
     throw new Error("Embedding client returned no vector.");
@@ -82,7 +82,7 @@ export async function searchMemories(
 ): Promise<MemorySearchResult[]> {
   const embeddings = getEmbeddingClient();
 
-  const [queryVector] = await embeddings.embed([query]);
+  const [queryVector] = await embeddings.embed([query], "query");
 
   if (!queryVector) {
     throw new Error("Embedding client returned no vector.");

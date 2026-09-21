@@ -25,11 +25,13 @@ export type LLMChatResponse = {
   toolCalls: LLMToolCall[];
 };
 
+export type EmbedKind = "query" | "document";
+
 export interface LLMClient {
   chat(request: LLMChatRequest): Promise<LLMChatResponse>;
 }
 
 export interface EmbeddingClient {
   readonly embeddingModel: string;
-  embed(texts: string[]): Promise<number[][]>;
+  embed(texts: string[], kind: EmbedKind): Promise<number[][]>;
 }

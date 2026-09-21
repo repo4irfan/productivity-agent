@@ -7,13 +7,13 @@ const embeddings = getEmbeddingClient();
 const collection = db.collection("memories");
 
 const missing = await collection
-  .find({ embedding: { $exists: false } })
+  .find({})
   .toArray();
 
 console.log(`Embedding ${missing.length} memories with ${embeddings.embeddingModel}`);
 
 for (const memory of missing) {
-  const [embedding] = await embeddings.embed([memory.content]);
+  const [embedding] = await embeddings.embed([memory.content], "document");
 
   await collection.updateOne(
     { _id: memory._id },

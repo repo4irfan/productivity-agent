@@ -21,6 +21,17 @@ export function chunkText(
   let previousParagraph = "";
 
   for (const paragraph of paragraphs) {
+
+    const isHeading = /^#{1,6}\s/.test(paragraph);
+
+    // A heading always starts a new chunk: one section = one topic.
+    if (isHeading && current && !isHeadingOnly(current)) {
+      chunks.push(current);
+      current = paragraph;
+      previousParagraph = "";
+      continue;
+    }
+
     const candidate = current ? `${current}\n\n${paragraph}` : paragraph;
 
     if (candidate.length > maxChars && current) {
@@ -42,4 +53,8 @@ export function chunkText(
   }
 
   return chunks;
+}
+
+function isHeadingOnly(chunk: string): boolean {
+  return /^#{1,6}\s[^\n]*$/.test(chunk.trim());
 }
