@@ -16,6 +16,7 @@ export async function extractMemory(
   try {
 
         const response = await getLLMClient().chat({
+          purpose: "memory-extraction",
       system: `
 You are a memory extraction system.
 

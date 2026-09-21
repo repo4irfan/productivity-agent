@@ -60,6 +60,13 @@ export class OllamaClient implements LLMClient, EmbeddingClient {
     return {
       content: response.message.content,
       toolCalls: (response.message.tool_calls ?? []).map(toLLMToolCall),
+      usage: {
+        promptTokens: response.prompt_eval_count ?? 0,
+        cachedTokens:
+          (response as { prompt_eval_cached_count?: number })
+            .prompt_eval_cached_count ?? 0,
+        completionTokens: response.eval_count ?? 0,
+      },
     };
   }
 }

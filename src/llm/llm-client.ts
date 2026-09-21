@@ -13,7 +13,14 @@ export type LLMToolCall = {
   arguments: Record<string, unknown>;
 };
 
+export type LLMUsage = {
+  promptTokens: number;
+  cachedTokens: number;
+  completionTokens: number;
+};
+
 export type LLMChatRequest = {
+  purpose: string;              // "agent" | "memory-extraction" | "summarization"
   system: string;
   messages: AgentMessage[];
   tools?: LLMToolDefinition[];
@@ -23,6 +30,7 @@ export type LLMChatRequest = {
 export type LLMChatResponse = {
   content: string;
   toolCalls: LLMToolCall[];
+  usage?: LLMUsage;
 };
 
 export type EmbedKind = "query" | "document";

@@ -1,6 +1,7 @@
 import type { LLMClient, EmbeddingClient } from "./llm-client";
 import { OllamaClient } from "./ollama-client";
 import { OpenAIClient } from "./openai-client";
+import { traced } from "../observability/tracer";
 
 type ProviderClient = LLMClient & EmbeddingClient;
 
@@ -34,7 +35,7 @@ function buildClient(): ProviderClient {
 
 function getClient(): ProviderClient {
   if (!client) {
-    client = buildClient();
+    client = withTracing(buildClient());
   }
 
   return client;
@@ -46,4 +47,21 @@ export function getLLMClient(): LLMClient {
 
 export function getEmbeddingClient(): EmbeddingClient {
   return getClient();
+}
+
+function withTracing(client: ProviderClient): ProviderClient {
+  return {
+    embeddingModel: client.embeddingModel,
+
+    chat: (request) =>
+      traced("llm", request.purpose, () => client.chat(request), (response) => ({
+        ...response.usage,
+        toolCalls: response.toolCalls.map((call) => call.name),
+      })),
+
+    embed: (texts, kind) =>
+      traced("embed", kind, () => client.embed(texts, kind), () => ({
+        count: texts.length,
+      })),
+  };
 }

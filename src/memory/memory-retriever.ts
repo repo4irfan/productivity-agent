@@ -1,4 +1,5 @@
 import { searchMemories, type Memory } from "./memory-repository";
+import { traced } from "../observability/tracer";
 
 const MAX_RELEVANT_MEMORIES = 3;
 
@@ -6,7 +7,12 @@ export async function retrieveRelevantMemories(
   message: string
 ): Promise<Memory[]> {
   try {
-    return await searchMemories(message, MAX_RELEVANT_MEMORIES);
+    return await traced(
+      "retrieval",
+      "memories",
+      () => searchMemories(message, MAX_RELEVANT_MEMORIES),
+      (memories) => ({ count: memories.length, topScore: memories[0]?.score ?? null })
+    );
   } catch (error) {
     console.warn("Memory retrieval failed; continuing without.", error);
     return [];

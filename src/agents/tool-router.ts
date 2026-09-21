@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { toolRegistry } from "./tool-registry";
 import { ToolError } from "./tool-error";
+import { traced } from "../observability/tracer";
 import type { AnyAgentTool } from "./tool-types";
 
 type ToolName = keyof typeof toolRegistry;
@@ -19,10 +20,14 @@ function isToolName(name: string): name is ToolName {
   return name in toolRegistry;
 }
 
-export async function executeTool(
-  name: string,
-  argumentsJson: string
-): Promise<ToolResult> {
+export async function executeTool(name: string, argumentsJson: string): Promise<ToolResult> {
+  return traced("tool", name, () => executeToolInner(name, argumentsJson), (result) =>
+    result.success ? { success: true } : { success: false, error: result.error }
+  );
+}
+
+async function executeToolInner(name: string, argumentsJson: string): Promise<ToolResult> {
+
   try {
     if (!isToolName(name)) {
       return {

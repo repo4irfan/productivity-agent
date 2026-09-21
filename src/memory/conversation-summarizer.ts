@@ -21,6 +21,7 @@ ${existingSummary}
 
 
     const response = await getLLMClient().chat({
+      purpose: "summarization",
     system: `
 You summarize conversations for a productivity assistant.
 

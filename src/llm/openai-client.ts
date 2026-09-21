@@ -70,6 +70,11 @@ export class OpenAIClient implements LLMClient, EmbeddingClient {
     return {
       content: message?.content ?? "",
       toolCalls: (message?.tool_calls ?? []).map(toLLMToolCall),
+      usage: {
+        promptTokens: response.usage?.prompt_tokens ?? 0,
+        cachedTokens: response.usage?.prompt_tokens_details?.cached_tokens ?? 0,
+        completionTokens: response.usage?.completion_tokens ?? 0,
+      },
     };
   }
 }

@@ -6,6 +6,7 @@ import { extractMemory } from "../memory/memory-extractor";
 import { remember } from "../tools/memory-tools";
 import { persistAgentState } from "./conversation-manager";
 import { manageConversationContext } from "./context-manager";
+import { markFailure } from "../observability/tracer";
 import {
   retrieveRelevantMemories,
   formatMemoryContext,
@@ -166,6 +167,7 @@ while (true) {
     }
 
     const response = await llm.chat({
+      purpose: "agent",
       system,
       messages: withContextInLastUserMessage(state.conversation, memoryContext),
       tools: toolDefinitions,
@@ -233,6 +235,8 @@ async function failGracefully(
   reason: string
 ): Promise<string> {
     console.error("Agent failure:", reason);
+
+    markFailure(reason);
 
     const content =
       "I ran into a problem and couldn't finish that request. Please try again.";

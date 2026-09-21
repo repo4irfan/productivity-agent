@@ -5,6 +5,10 @@ import {
   loadAgentState,
 } from "./agents/conversation-manager";
 
+import { runTurn } from "./observability/tracer";
+import { saveTrace } from "./observability/trace-repository";
+import { summarizeTrace } from "./observability/trace-summary";
+
 import readline from "node:readline/promises";
 
 const rl = readline.createInterface({
@@ -60,9 +64,15 @@ async function main() {
       }
 
       try {
-        const response = await runAgent(
-          state,
-          trimmedMessage
+        
+        const response = await runTurn(
+          state.conversationId,
+          trimmedMessage,
+          () => runAgent(state, trimmedMessage),
+          async (trace) => {
+            console.log(summarizeTrace(trace));
+            await saveTrace(trace);
+          }
         );
 
         console.log("Agent:", response);
