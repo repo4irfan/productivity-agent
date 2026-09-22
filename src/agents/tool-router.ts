@@ -21,8 +21,15 @@ function isToolName(name: string): name is ToolName {
 }
 
 export async function executeTool(name: string, argumentsJson: string): Promise<ToolResult> {
-  return traced("tool", name, () => executeToolInner(name, argumentsJson), (result) =>
-    result.success ? { success: true } : { success: false, error: result.error }
+  return traced(
+    "tool",
+    name,
+    () => executeToolInner(name, argumentsJson),
+    (result) => ({
+      success: result.success,
+      arguments: argumentsJson,
+      ...(result.success ? {} : { error: result.error }),
+    })
   );
 }
 

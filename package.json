@@ -12,7 +12,8 @@
     "dedupe:memories": "tsx scripts/dedupe-memories.ts",
     "ingest": "tsx scripts/ingest.ts",
     "search:documents": "tsx scripts/search-documents.ts",
-    "traces": "tsx scripts/traces.ts"
+    "traces": "tsx scripts/traces.ts",
+    "eval": "tsx scripts/eval.ts"
   },
   "keywords": [],
   "author": "",
