@@ -1,0 +1,28 @@
+{
+  "provider": "ollama",
+  "model": "qwen2.5:7b",
+  "passed": 2,
+  "total": 2,
+  "results": [
+    {
+      "id": "create-task",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "create_task"
+      ],
+      "reply": "I've created a task titled \"Eval Create Task\" with medium priority for you. Would you like to add a due date or set a priority for this task?",
+      "durationMs": 20155
+    },
+    {
+      "id": "create-task-with-priority-and-date",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "create_task"
+      ],
+      "reply": "The task \"Eval Dated Task\" has been created successfully. It is due on 2026-10-01 and has a high priority.",
+      "durationMs": 25031
+    }
+  ]
+}

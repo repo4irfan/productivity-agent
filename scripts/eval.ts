@@ -1,3 +1,4 @@
+import "../evals/quiet";
 import "dotenv/config";
 import { mkdir, writeFile } from "node:fs/promises";
 import { cases } from "../evals/cases";

@@ -1,0 +1,20 @@
+{
+  "provider": "ollama",
+  "model": "qwen2.5:7b",
+  "passed": 0,
+  "total": 1,
+  "results": [
+    {
+      "id": "complete-by-title",
+      "passed": false,
+      "failures": [
+        "expected tools find_tasks → complete_task, got find_tasks"
+      ],
+      "tools": [
+        "find_tasks"
+      ],
+      "reply": "I found multiple tasks titled \"Eval Complete Me\". Could you please specify which one you want to complete?",
+      "durationMs": 98060
+    }
+  ]
+}

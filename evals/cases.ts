@@ -5,6 +5,8 @@ export type EvalCase = {
   expectTools?: string[];
   /** Tools that must not appear. */
   forbidTools?: string[];
+  /** For a tool, these argument keys must equal these values (undefined = must be absent). */
+  expectToolArgs?: Record<string, Record<string, unknown>>;
   /** Upper bound on tool calls (0 = must answer without tools). */
   maxToolCalls?: number;
   /** At least one of these substrings must appear in the reply (case-insensitive). */
@@ -26,6 +28,8 @@ export const cases: EvalCase[] = [
     prompt: "create a task called Eval Create Task",
     expectTools: ["create_task"],
     answerIncludesAny: ["Eval Create Task"],
+    expectToolArgs: { create_task: { title: "Eval Create Task" } },
+    answerExcludes: ["high priority", "high-priority", "low priority", "low-priority"],
   },
   {
     id: "create-task-with-priority-and-date",
@@ -52,8 +56,20 @@ export const cases: EvalCase[] = [
       const { createTask } = await import("../src/tools/task-tools");
       await createTask({ title: "Eval Complete Me" });
     },
-    expectTools: ["find_tasks", "complete_task"],
-    forbidTools: ["list_tasks"],
+    expectTools: ["complete_task"],
+    forbidTools: ["list_tasks", "find_tasks"],
+    expectToolArgs: { complete_task: { title: "Eval Complete Me" } },
+  },
+  {
+    id: "complete-ambiguous-title-asks",
+    prompt: "complete the task called Eval Ambiguous",
+    setup: async () => {
+      const { createTask } = await import("../src/tools/task-tools");
+      await createTask({ title: "Eval Ambiguous One" });
+      await createTask({ title: "Eval Ambiguous Two" });
+    },
+    expectTools: ["complete_task"],
+    answerIncludesAny: ["which one", "which task", "multiple", "two tasks"],
   },
   {
     id: "missing-task-is-reported",

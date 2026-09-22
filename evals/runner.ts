@@ -38,7 +38,7 @@ export async function runCase(evalCase: EvalCase): Promise<EvalResult> {
     .filter((span) => span.kind === "tool")
     .map((span) => span.name);
 
-  const failures = check(evalCase, tools, reply);
+  const failures = check(evalCase, tools, reply, trace);
 
   return {
     id: evalCase.id,
@@ -50,7 +50,12 @@ export async function runCase(evalCase: EvalCase): Promise<EvalResult> {
   };
 }
 
-function check(evalCase: EvalCase, tools: string[], reply: string): string[] {
+function check(
+    evalCase: EvalCase,
+    tools: string[],
+    reply: string,
+    trace: TurnTrace | undefined
+): string[] {
   const failures: string[] = [];
   const lower = reply.toLowerCase();
 
@@ -72,6 +77,19 @@ function check(evalCase: EvalCase, tools: string[], reply: string): string[] {
 
   for (const s of evalCase.answerExcludes ?? []) {
     if (lower.includes(s.toLowerCase())) failures.push(`reply included forbidden text: ${s}`);
+  }
+  
+  for (const [tool, expected] of Object.entries(evalCase.expectToolArgs ?? {})) {
+    const span = trace?.spans.find((s) => s.kind === "tool" && s.name === tool);
+    const actual = span ? JSON.parse(String(span.data?.arguments ?? "{}")) : {};
+
+    for (const [key, value] of Object.entries(expected)) {
+      if (JSON.stringify(actual[key]) !== JSON.stringify(value)) {
+        failures.push(
+          `${tool}.${key}: expected ${JSON.stringify(value)}, got ${JSON.stringify(actual[key])}`
+        );
+      }
+    }
   }
 
   return failures;

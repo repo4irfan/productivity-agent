@@ -73,26 +73,42 @@ export async function findTasks(query: string): Promise<Task[]> {
   return findTasksInDb(query);
 }
 
-export async function completeTask(id: string): Promise<Task> {
-  const task = await completeTaskInDb(id);
+export type TaskReference = { id?: string | null; title?: string | null };
 
-  if (!task) {
-    throw new ToolError("Task not found.");
+async function resolveTaskId(reference: TaskReference): Promise<string> {
+  if (reference.id) {
+    return reference.id;
   }
 
+  if (!reference.title) {
+    throw new ToolError("Provide either a task id or a title.");
+  }
+
+  const matches = await findTasksInDb(reference.title);
+
+  if (matches.length === 0) {
+    throw new ToolError(`No task found with title matching "${reference.title}".`);
+  }
+
+  if (matches.length > 1) {
+    const list = matches.map((task) => `"${task.title}" (${task.id})`).join(", ");
+    throw new ToolError(`Multiple tasks match "${reference.title}": ${list}. Ask the user which one, then call again with the id.`);
+  }
+
+  return matches[0]!.id;
+}
+
+export async function completeTask(reference: TaskReference): Promise<Task> {
+  const task = await completeTaskInDb(await resolveTaskId(reference));
+  if (!task) throw new ToolError("Task not found.");
   return task;
 }
 
-export async function deleteTask(id: string): Promise<Task> {
-  const task = await deleteTaskFromDb(id);
-
-  if (!task) {
-    throw new ToolError("Task not found.");
-  }
-
+export async function deleteTask(reference: TaskReference): Promise<Task> {
+  const task = await deleteTaskFromDb(await resolveTaskId(reference));
+  if (!task) throw new ToolError("Task not found.");
   return task;
 }
-
 
 export async function getDailyBriefing(): Promise<DailyBriefing> {
   return getDailyBriefingFromDb();

@@ -11,6 +11,7 @@ import {
   retrieveRelevantMemories,
   formatMemoryContext,
 } from "../memory/memory-retriever";
+import { log } from "../observability/logger";
 
 import type { AgentState, AgentMessage } from "./agent-state";
 
@@ -27,7 +28,7 @@ export async function runAgent(
   if (memoryResult.shouldRemember && memoryResult.memory) {
     const saved = await remember(memoryResult.memory);
 
-    console.log(
+    log.info(
       saved.created ? "Memory saved:" : "Memory already known:",
       saved.memory.content
     );
@@ -40,7 +41,7 @@ export async function runAgent(
   const relevantMemories = await retrieveRelevantMemories(latestMessage);
 
   if (relevantMemories.length > 0) {
-    console.log(
+    log.info(
       "Relevant memories:",
       relevantMemories.map((memory) => memory.content)
     );
@@ -99,13 +100,12 @@ Rules:
     failed and repeat the "error" text. Never say a task was created,
     completed, or deleted, or that a memory was saved, when "success" is false.
 - Never invent task IDs. Only use IDs returned by list_tasks, find_tasks, or create_task.
-- If the user refers to a task by title, call find_tasks with that title
-  to get its ID. Do not use list_tasks for this.
-- If find_tasks returns more than one match, do NOT guess. Show the user
-  the matches and ask which one they mean.
-- If find_tasks returns no matches, say the task was not found.
-- To change a task, find its ID with find_tasks, then call update_task
-  with only the fields that change. Use clearDueDate to remove a due date.
+- To complete, delete, or update a task the user names, call the tool with
+  the title directly. If the tool reports multiple matches, show them and ask
+  which one; then call again with the id.
+- Use find_tasks only to answer "do I have a task about X?" questions.
+- Never invent task IDs.
+- Do not set priority or dueDate unless the user mentions them.
 - Use search_memory when relevant remembered information is needed.
 - Give concise natural-language responses.
 - When the user mentions a due date (e.g. "tomorrow", "next Friday", "Sept 25"),
@@ -211,12 +211,12 @@ while (true) {
     for (const toolCall of response.toolCalls) {
       const toolArguments = JSON.stringify(toolCall.arguments);
 
-      console.log("\nTool requested:", toolCall.name);
-      console.log("Arguments:", toolArguments);
+      log.info("\nTool requested:", toolCall.name);
+      log.info("Arguments:", toolArguments);
 
       const result = await executeTool(toolCall.name, toolArguments);
 
-      console.log("Tool result:", JSON.stringify(result, null, 2));
+      log.info("Tool result:", JSON.stringify(result, null, 2));
 
       state.conversation.push({
         role: "tool",

@@ -201,60 +201,54 @@ const findTasksTool: AgentTool<
 };
 
 const completeTaskTool: AgentTool<
-  { id: string },
+  { id?: string | null; title?: string | null },
   Awaited<ReturnType<typeof completeTask>>
 > = {
   name: "complete_task",
-
-  description: "Mark a productivity task as completed.",
-
+  description:
+    "Mark a task as completed. Give its id, or its title if you don't have the id.",
   schema: z.object({
-    id: z.string().uuid(),
+    id: z.string().uuid().nullable().optional(),
+    title: z.string().min(1).nullable().optional(),
   }),
-
   openAISchema: {
     type: "object",
     properties: {
-      id: {
-        type: "string",
-        description: "The ID of the task",
-      },
+      id: { type: ["string", "null"], description: "The task id, if known." },
+      title: { type: ["string", "null"], description: "The task title, if the id is not known." },
     },
-    required: ["id"],
+    required: [],
     additionalProperties: false,
   },
-
-  execute: async ({ id }) => {
-    return completeTask(id);
-  },
+  execute: async (reference) => completeTask(reference),
 };
 
 const deleteTaskTool: AgentTool<
-  { id: string },
+  { id?: string | null; title?: string | null },
   Awaited<ReturnType<typeof deleteTask>>
 > = {
   name: "delete_task",
 
-  description: "Delete a productivity task.",
-
+  
+  description:
+    "Mark a task as deleted. Give its id, or its title if you don't have the id.",
   schema: z.object({
-    id: z.string().uuid(),
+    id: z.string().uuid().nullable().optional(),
+    title: z.string().min(1).nullable().optional(),
   }),
 
   openAISchema: {
     type: "object",
     properties: {
-      id: {
-        type: "string",
-        description: "The ID of the task",
-      },
+      id: { type: ["string", "null"], description: "The task id, if known." },
+      title: { type: ["string", "null"], description: "The task title, if the id is not known." },
     },
-    required: ["id"],
+    required: [],
     additionalProperties: false,
   },
 
-  execute: async ({ id }) => {
-    return deleteTask(id);
+  execute: async (reference) => {
+    return deleteTask(reference);
   },
 };
 

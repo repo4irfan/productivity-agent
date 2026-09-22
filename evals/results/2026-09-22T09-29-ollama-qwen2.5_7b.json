@@ -1,0 +1,116 @@
+{
+  "provider": "ollama",
+  "model": "qwen2.5:7b",
+  "passed": 10,
+  "total": 11,
+  "results": [
+    {
+      "id": "chit-chat-no-tools",
+      "passed": true,
+      "failures": [],
+      "tools": [],
+      "reply": "Hello! I'm here to help you with productivity. How can I assist you today?",
+      "durationMs": 112466
+    },
+    {
+      "id": "create-task",
+      "passed": false,
+      "failures": [
+        "create_task.priority: expected undefined, got \"medium\""
+      ],
+      "tools": [
+        "create_task"
+      ],
+      "reply": "I've created a task titled \"Eval Create Task\" for you. It's a medium priority task, with no specific due date. Would you like to add a due date or change the priority?",
+      "durationMs": 24943
+    },
+    {
+      "id": "create-task-with-priority-and-date",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "create_task"
+      ],
+      "reply": "I've created the task \"Eval Dated Task\" with a high priority and it is due on 2026-10-01.",
+      "durationMs": 26703
+    },
+    {
+      "id": "overdue-uses-filter",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "list_tasks"
+      ],
+      "reply": "There is one overdue task:\n\n- [High Priority] [Due: 2026-09-10] Overdue Test\n\nPlease address this task as soon as possible.",
+      "durationMs": 37776
+    },
+    {
+      "id": "plan-uses-briefing",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "get_daily_briefing"
+      ],
+      "reply": "Based on your daily briefing, you have several high-priority tasks to focus on today. Here's the plan:\n\n1. **Overdue Test** - Due on 2026-09-10.\n2. **Today Test** - Due today.\n3. **Write report** - Due on 2026-09-18.\n4. **Friday Test** - Due on 2026-09-21.\n5. **Test** - Due on 2026-09-25.\n6. **Calendar Test** - Due on 2026-09-25.\n7. **Adapter Test** - Due on 2026-09-25.\n8. **Eval Dated Task** - Due on 2026-10-01.\n9. **Eval Dated Task** - Due on 2026-10-01.\n10. **Weekly Review** - This is a high-priority task but has no due date.\n11. **Eval Create Task** - This is another high-priority task with no due date.\n\nGiven your preference for working on backend tasks in the morning, let's start with the \"Overdue Test\" and \"Today Test\" to clear your immediate high-priority tasks. After that, you can continue with backend development tasks like \"Write report\" and \"Friday Test.\"",
+      "durationMs": 133606
+    },
+    {
+      "id": "complete-by-title",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "complete_task"
+      ],
+      "reply": "It seems there are multiple tasks named \"Eval Complete Me\". Could you please specify which one you would like to complete by providing its ID?",
+      "durationMs": 31377
+    },
+    {
+      "id": "complete-ambiguous-title-asks",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "complete_task"
+      ],
+      "reply": "It seems there are multiple tasks titled \"Eval Ambiguous\". Could you please specify which one you want to complete by providing its ID? If you don't know the ID, let me know the title again and I'll try to find the correct one.",
+      "durationMs": 30232
+    },
+    {
+      "id": "missing-task-is-reported",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "complete_task"
+      ],
+      "reply": "I couldn't find the task with ID `00000000-0000-0000-0000-000000000000`. Could you please provide me with the title of the task instead?",
+      "durationMs": 32805
+    },
+    {
+      "id": "rag-whole-document",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "search_documents"
+      ],
+      "reply": "Based on the documents, here are the steps for deployment:\n\n1. **Run the checks**: Execute `npm run typecheck` and `npm test`. Do not proceed to the next steps if any of these fail.\n\n2. **Check MongoDB**: Ensure that the MongoDB container is running by executing `docker compose ps`. Verify that the database name is `productivity_agent` and that it is listening on port 27018.\n\n3. **Verify Ollama models**: Ensure that both `qwen2.5:7b` and `nomic-embed-text` models are pulled. You can check this with `ollama list`.\n\n4. **Update environment**: Copy any new keys from `.env.example` into `.env`. Set `DEBUG=false` for normal use.\n\n5. **Smoke test**: Start by running `npm run dev`. Create a task, ask for a daily briefing, and then exit to ensure everything is working as expected.\n\n6. **Commit and tag**: Commit your changes with a clear message and tag the release, for example, `git tag v0.4.0`.\n\nThese steps should help you deploy the productivity agent successfully.",
+      "durationMs": 106917
+    },
+    {
+      "id": "rag-grounded-refusal",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "search_documents"
+      ],
+      "reply": "I couldn't find any mention of Kubernetes in your README document. It seems the README focuses more on the stack and architecture of the application, rather than details about Kubernetes. If you have a specific part of the document you're interested in, feel free to ask!",
+      "durationMs": 63288
+    },
+    {
+      "id": "memory-recall",
+      "passed": true,
+      "failures": [],
+      "tools": [],
+      "reply": "Based on what you've told me, you're most productive before noon and particularly enjoy doing backend tasks during that time. Planning your backend work for morning hours might be the most effective way to leverage your productivity.",
+      "durationMs": 14456
+    }
+  ]
+}
