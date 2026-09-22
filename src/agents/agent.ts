@@ -6,12 +6,14 @@ import { extractMemory } from "../memory/memory-extractor";
 import { remember } from "../tools/memory-tools";
 import { persistAgentState } from "./conversation-manager";
 import { manageConversationContext } from "./context-manager";
-import { markFailure } from "../observability/tracer";
+import { markFailure, currentTrace } from "../observability/tracer";
 import {
   retrieveRelevantMemories,
   formatMemoryContext,
 } from "../memory/memory-retriever";
 import { log } from "../observability/logger";
+import { checkInput } from "../guardrails/input-guard";
+import { checkOutput } from "../guardrails/output-guard";
 
 import type { AgentState, AgentMessage } from "./agent-state";
 
@@ -19,36 +21,46 @@ export async function runAgent(
   state: AgentState,
   latestMessage: string
 ) {
+
+  const input = checkInput(latestMessage);
+
+  if (!input.ok) {
+    state.conversation.push({ role: "user", content: latestMessage });
+    state.conversation.push({ role: "assistant", content: input.reply });
+    await persistAgentState(state);
+    return input.reply;
+  }
+
   // --------------------------------
   // 1. Extract useful memory
   // --------------------------------
+  if (!input.skipMemory) {
+    const memoryResult = await extractMemory(latestMessage);
 
-  const memoryResult = await extractMemory(latestMessage);
+    if (memoryResult.shouldRemember && memoryResult.memory) {
+      const saved = await remember(memoryResult.memory);
 
-  if (memoryResult.shouldRemember && memoryResult.memory) {
-    const saved = await remember(memoryResult.memory);
-
-    log.info(
-      saved.created ? "Memory saved:" : "Memory already known:",
-      saved.memory.content
-    );
+      log.info(
+        saved.created ? "Memory saved:" : "Memory already known:",
+        saved.memory.content
+      );
+    }
   }
-
     // --------------------------------
-  // 1b. Retrieve relevant memories
-  // --------------------------------
+    // 1b. Retrieve relevant memories
+    // --------------------------------
 
-  const relevantMemories = await retrieveRelevantMemories(latestMessage);
+    const relevantMemories = await retrieveRelevantMemories(latestMessage);
 
-  if (relevantMemories.length > 0) {
-    log.info(
-      "Relevant memories:",
-      relevantMemories.map((memory) => memory.content)
-    );
-  }
+    if (relevantMemories.length > 0) {
+      log.info(
+        "Relevant memories:",
+        relevantMemories.map((memory) => memory.content)
+      );
+    }
 
-  const memoryContext = formatMemoryContext(relevantMemories);
-
+    const memoryContext = formatMemoryContext(relevantMemories);
+  
   // --------------------------------
   // 2. Add user message to state
   // --------------------------------
@@ -174,7 +186,7 @@ while (true) {
     });
 
     if (response.toolCalls.length === 0) {
-      const content = response.content.trim();
+      const content = checkOutput(response.content.trim(), currentTrace());
 
       if (!content) {
         emptyResponseRetries++;

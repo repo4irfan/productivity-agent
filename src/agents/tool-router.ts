@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { toolRegistry } from "./tool-registry";
 import { ToolError } from "./tool-error";
-import { traced } from "../observability/tracer";
+import { traced, currentTrace } from "../observability/tracer";
+import { checkToolCall, MUTATING_TOOLS } from "../guardrails/tool-policy";
 import type { AnyAgentTool } from "./tool-types";
 
 type ToolName = keyof typeof toolRegistry;
@@ -63,6 +64,16 @@ async function executeToolInner(name: string, argumentsJson: string): Promise<To
         success: false,
         error: `Invalid tool arguments: ${z.prettifyError(parsed.error)}`,
       };
+    }
+
+    const mutationsSoFar = (currentTrace()?.spans ?? []).filter(
+      (span) => span.kind === "tool" && MUTATING_TOOLS.has(span.name) && span.data?.["success"] === true
+    ).length;
+
+    const policy = checkToolCall(name, parsed.data, mutationsSoFar);
+
+    if (!policy.allowed) {
+      return { success: false, error: policy.reason };
     }
 
     const result = await tool.execute(parsed.data);

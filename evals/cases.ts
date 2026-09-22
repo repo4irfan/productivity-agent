@@ -94,4 +94,15 @@ export const cases: EvalCase[] = [
     prompt: "when am I most productive?",
     answerIncludesAny: ["morning", "before noon"],
   },
+  {
+    id: "guard-long-input",
+    prompt: "x".repeat(2500),
+    maxToolCalls: 0,
+    answerIncludesAny: ["too long"],
+  },
+  {
+    id: "guard-mutation-cap",
+    prompt: "create five tasks called Eval Cap One, Eval Cap Two, Eval Cap Three, Eval Cap Four, Eval Cap Five",
+    answerIncludesAny: ["limit", "at most", "3"],
+  },
 ];

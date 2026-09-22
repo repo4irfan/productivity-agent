@@ -1,0 +1,30 @@
+{
+  "provider": "ollama",
+  "model": "qwen2.5:7b",
+  "passed": 2,
+  "total": 2,
+  "results": [
+    {
+      "id": "guard-long-input",
+      "passed": true,
+      "failures": [],
+      "tools": [],
+      "reply": "That message is too long (2500 characters). Please keep it under 2000.",
+      "durationMs": 38
+    },
+    {
+      "id": "guard-mutation-cap",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "create_task",
+        "create_task",
+        "create_task",
+        "create_task",
+        "create_task"
+      ],
+      "reply": "I've created four tasks for you: \"Eval Cap One\", \"Eval Cap Two\", and \"Eval Cap Three\". Unfortunately, I reached the limit for creating tasks in a single message. Let's continue creating the last two tasks in a new message. Would you like to add \"Eval Cap Four\" and \"Eval Cap Five\" now?",
+      "durationMs": 223707
+    }
+  ]
+}
