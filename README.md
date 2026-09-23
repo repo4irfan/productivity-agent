@@ -272,14 +272,14 @@ Agent: From your "Deploy checklist": 1. Run the checks ... 6. Commit and tag.
 - [x] Embeddings and vector search
 - [x] Semantic memory with automatic retrieval
 - [x] RAG over documents (chunking, parent-document expansion)
+- [x] **Observability and tracing** — per-turn trace of LLM calls, latency, cache hits, tool calls, retrieval scores
+- [x] **Agent evaluation** — a repeatable test set for tool selection, date handling, grounded answers
+- [x] **Guardrails** — input/output checks, confirmation before destructive actions
 
 ### Planned
 
 In the order I intend to tackle them:
 
-- [ ] **Observability and tracing** — per-turn trace of LLM calls, latency, cache hits, tool calls, retrieval scores
-- [ ] **Agent evaluation** — a repeatable test set for tool selection, date handling, grounded answers
-- [ ] **Guardrails** — input/output checks, confirmation before destructive actions
 - [ ] **Human-in-the-loop** — approve or edit tool calls before execution
 - [ ] **Workflow orchestration** — multi-step plans (e.g. weekly review) as code, not prompts
 - [ ] **MCP integration** — expose tools over MCP and consume external MCP servers

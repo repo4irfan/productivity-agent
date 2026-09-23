@@ -42,8 +42,10 @@ export async function runCase(evalCase: EvalCase): Promise<EvalResult> {
   const tools = (trace?.spans ?? [])
     .filter((span) => span.kind === "tool")
     .map((span) => span.name);
-
-  const failures = check(evalCase, tools, reply, trace);
+  
+    const failures = reply.startsWith("ERROR:")
+    ? [reply]
+    : check(evalCase, tools, reply, trace);
 
   const verifyFailure = await evalCase.verify?.();
 

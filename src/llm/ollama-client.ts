@@ -1,4 +1,4 @@
-import ollama, { type Message, type Tool, type ToolCall } from "ollama";
+import { Ollama, type Message, type Tool, type ToolCall } from "ollama";
 
 import type { AgentMessage } from "../agents/agent-state";
 
@@ -19,6 +19,14 @@ export type OllamaClientOptions = {
   debug?: boolean;
 };
 
+const REQUEST_TIMEOUT_MS = Number(process.env.OLLAMA_TIMEOUT_MS ?? 180_000);
+
+const client = new Ollama({
+  host: process.env.OLLAMA_HOST ?? "http://127.0.0.1:11434",
+  fetch: (input: string | URL | Request, init?: RequestInit) =>
+    fetch(input, { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) }),
+});
+
 export class OllamaClient implements LLMClient, EmbeddingClient {
   constructor(private readonly options: OllamaClientOptions) {}
 
@@ -31,7 +39,7 @@ export class OllamaClient implements LLMClient, EmbeddingClient {
       ? kind === "query" ? "search_query: " : "search_document: "
       : "";
 
-    const response = await ollama.embed({
+    const response = await client.embed({
       model: this.options.embeddingModel,
       input: texts.map((text) => `${prefix}${text}`),
       keep_alive: "30m",
@@ -41,7 +49,7 @@ export class OllamaClient implements LLMClient, EmbeddingClient {
   }
 
   async chat(request: LLMChatRequest): Promise<LLMChatResponse> {
-    const response = await ollama.chat({
+    const response = await client.chat({
       model: this.options.model,
       messages: [
         { role: "system", content: request.system },
