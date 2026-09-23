@@ -1,3 +1,5 @@
+import { givenTask, countTasks } from "./fixtures";
+
 export type EvalCase = {
   id: string;
   prompt: string;
@@ -15,6 +17,10 @@ export type EvalCase = {
   answerExcludes?: string[];
   /** Runs before the prompt, e.g. to create a task the prompt refers to. */
   setup?: () => Promise<void>;
+    /** How the simulated human answers confirmation prompts. Default: approve. */
+  approval?: "approve" | "deny";
+  /** Runs after the turn; return a failure message or null. */
+  verify?: () => Promise<string | null>;
 };
 
 export const cases: EvalCase[] = [
@@ -52,10 +58,7 @@ export const cases: EvalCase[] = [
   {
     id: "complete-by-title",
     prompt: "complete the task called Eval Complete Me",
-    setup: async () => {
-      const { createTask } = await import("../src/tools/task-tools");
-      await createTask({ title: "Eval Complete Me" });
-    },
+    setup: () => givenTask("Eval Complete Me"),
     expectTools: ["complete_task"],
     forbidTools: ["list_tasks", "find_tasks"],
     expectToolArgs: { complete_task: { title: "Eval Complete Me" } },
@@ -64,9 +67,8 @@ export const cases: EvalCase[] = [
     id: "complete-ambiguous-title-asks",
     prompt: "complete the task called Eval Ambiguous",
     setup: async () => {
-      const { createTask } = await import("../src/tools/task-tools");
-      await createTask({ title: "Eval Ambiguous One" });
-      await createTask({ title: "Eval Ambiguous Two" });
+      await givenTask("Eval Ambiguous One");
+      await givenTask("Eval Ambiguous Two");
     },
     expectTools: ["complete_task"],
     answerIncludesAny: ["which one", "which task", "multiple", "two tasks"],
@@ -104,5 +106,47 @@ export const cases: EvalCase[] = [
     id: "guard-mutation-cap",
     prompt: "create five tasks called Eval Cap One, Eval Cap Two, Eval Cap Three, Eval Cap Four, Eval Cap Five",
     answerIncludesAny: ["limit", "at most", "3"],
+  },
+  {
+    id: "hitl-delete-declined",
+    prompt: "delete the task called Eval Delete Declined",
+    setup: () => givenTask("Eval Delete Declined"),
+    approval: "deny",
+    expectTools: ["delete_task"],
+    answerIncludesAny: ["declined", "not deleted", "wasn't deleted", "was not deleted", "cancel"],
+    verify: async () => {
+      const count = await countTasks("Eval Delete Declined");
+      return count === 1 ? null : `expected 1 surviving task, found ${count}`;
+    },
+  },
+  {
+    id: "hitl-delete-approved",
+    prompt: "delete the task called Eval Delete Approved",
+    setup: () => givenTask("Eval Delete Approved"),
+    approval: "approve",
+    expectTools: ["delete_task"],
+    verify: async () => {
+      const count = await countTasks("Eval Delete Approved");
+      return count === 0 ? null : `expected the task to be deleted, found ${count}`;
+    },
+  },
+  {
+    id: "hitl-retry-after-decline",
+    prompt: "delete the task called Eval Retry Delete",
+    setup: () => givenTask("Eval Retry Delete"),
+    approval: "approve",
+    expectTools: ["delete_task"],
+    verify: async () => {
+      const count = await countTasks("Eval Retry Delete");
+      return count === 0 ? null : `task still exists after approval, found ${count}`;
+    },
+  },
+  {
+    id: "no-fake-decline",
+    prompt: "delete the task called Eval No Fake",
+    setup: () => givenTask("Eval No Fake"),
+    approval: "approve",
+    expectTools: ["delete_task"],
+    answerExcludes: ["declined"],
   },
 ];

@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 
-export type SpanKind = "llm" | "embed" | "tool" | "retrieval";
+export type SpanKind = "llm" | "embed" | "tool" | "retrieval" | "approval";
 
 export type Span = {
   kind: SpanKind;

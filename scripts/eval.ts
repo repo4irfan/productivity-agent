@@ -3,12 +3,15 @@ import "dotenv/config";
 import { mkdir, writeFile } from "node:fs/promises";
 import { cases } from "../evals/cases";
 import { runCase, type EvalResult } from "../evals/runner";
+import { resetEvalData } from "../evals/fixtures";
 
 const only = process.argv[2];
 const selected = only ? cases.filter((c) => c.id.includes(only)) : cases;
 
 const provider = process.env.LLM_PROVIDER ?? "ollama";
 const model = process.env.LLM_MODEL ?? "?";
+
+await resetEvalData();
 
 console.log(`Running ${selected.length} cases on ${provider}/${model}\n`);
 

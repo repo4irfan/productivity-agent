@@ -14,12 +14,17 @@ import {
 import { log } from "../observability/logger";
 import { checkInput } from "../guardrails/input-guard";
 import { checkOutput } from "../guardrails/output-guard";
+import { autoDeny } from "../guardrails/approval"
 
+import type { ApprovalHandler } from "../guardrails/approval"
 import type { AgentState, AgentMessage } from "./agent-state";
+
+export type AgentOptions = { approve: ApprovalHandler };
 
 export async function runAgent(
   state: AgentState,
-  latestMessage: string
+  latestMessage: string,
+  options: AgentOptions = { approve: autoDeny }
 ) {
 
   const input = checkInput(latestMessage);
@@ -149,6 +154,9 @@ Rules:
   never give a complete list.
 - Always search or read for a new question, even if earlier results are still
   in the conversation.
+- To delete a task, call delete_task. Never ask the user to confirm first —
+  confirmation is handled outside this conversation. If the tool result says
+  the user declined, tell them it was not deleted.
 
 Calendar (use this to convert relative dates to YYYY-MM-DD — do not calculate dates yourself):
 ${buildCalendarContext()}
@@ -226,7 +234,7 @@ while (true) {
       log.info("\nTool requested:", toolCall.name);
       log.info("Arguments:", toolArguments);
 
-      const result = await executeTool(toolCall.name, toolArguments);
+      const result = await executeTool(toolCall.name, toolArguments, options);
 
       log.info("Tool result:", JSON.stringify(result, null, 2));
 

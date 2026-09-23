@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-
 import { executeTool } from "./tool-router";
+import { autoApprove, autoDeny } from "../guardrails/approval"
 
 describe("executeTool", () => {
   it("returns an error for an unknown tool", async () => {
@@ -70,14 +70,25 @@ describe("executeTool", () => {
         const result = await executeTool(
             "delete_task",
             JSON.stringify({
-            id: "00000000-0000-0000-0000-000000000000",
-            })
+              id: "00000000-0000-0000-0000-000000000000",
+            }),
+            { approve: autoApprove }
         );
 
         expect(result).toEqual({
             success: false,
             error: "Task not found.",
         });
+    });
+
+    it("denies a confirmation-required tool when the user declines", async () => {
+      const result = await executeTool(
+        "delete_task",
+        JSON.stringify({ id: "00000000-0000-0000-0000-000000000000" }),
+        { approve: autoDeny }
+      );
+
+      expect(result).toMatchObject({ success: false, error: expect.stringContaining("declined") });
     });
 
     it("registers find_tasks", async () => {

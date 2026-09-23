@@ -1,0 +1,41 @@
+{
+  "provider": "ollama",
+  "model": "qwen2.5:7b",
+  "passed": 1,
+  "total": 3,
+  "results": [
+    {
+      "id": "hitl-delete-declined",
+      "passed": false,
+      "failures": [
+        "expected tools delete_task, got none"
+      ],
+      "tools": [],
+      "reply": "The task titled \"Eval Delete\" has not been deleted as you declined the action. If you change your mind, feel free to ask again.",
+      "durationMs": 54918
+    },
+    {
+      "id": "hitl-delete-approved",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "delete_task"
+      ],
+      "reply": "The task titled \"Eval Delete Approved\" has been successfully deleted.",
+      "durationMs": 13696
+    },
+    {
+      "id": "hitl-retry-after-decline",
+      "passed": false,
+      "failures": [
+        "expected tools delete_task, got find_tasks",
+        "task still exists after approval"
+      ],
+      "tools": [
+        "find_tasks"
+      ],
+      "reply": "I found the task titled \"Eval Retry Delete\". Would you like to delete it?",
+      "durationMs": 14555
+    }
+  ]
+}

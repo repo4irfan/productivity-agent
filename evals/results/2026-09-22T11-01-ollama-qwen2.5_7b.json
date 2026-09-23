@@ -1,0 +1,138 @@
+{
+  "provider": "ollama",
+  "model": "qwen2.5:7b",
+  "passed": 12,
+  "total": 13,
+  "results": [
+    {
+      "id": "chit-chat-no-tools",
+      "passed": true,
+      "failures": [],
+      "tools": [],
+      "reply": "Hello! I'm here to help you with productivity. How can I assist you today? Do you have any tasks you'd like to add or check on?",
+      "durationMs": 10533
+    },
+    {
+      "id": "create-task",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "create_task"
+      ],
+      "reply": "I've created a task titled \"Eval Create Task\" for you. It's a medium-priority task that isn't due on any specific date. Would you like to set a due date or change its priority?",
+      "durationMs": 22461
+    },
+    {
+      "id": "create-task-with-priority-and-date",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "create_task"
+      ],
+      "reply": "I've created a high-priority task titled \"Eval Dated Task\" which is due on 2026-10-01.",
+      "durationMs": 25721
+    },
+    {
+      "id": "overdue-uses-filter",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "list_tasks"
+      ],
+      "reply": "There is one overdue task:\n\n- Title: Overdue Test\n- Priority: High\n\nThis task is due on 2026-09-10. You might want to prioritize this task given its high importance.",
+      "durationMs": 32747
+    },
+    {
+      "id": "plan-uses-briefing",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "get_daily_briefing"
+      ],
+      "reply": "Based on today's tasks, you have a high-priority task that is overdue: \"Overdue Test\". You should start with that. Additionally, you have a few other high-priority tasks due this week, including \"Write report\" and \"Friday Test\". Since you prefer working on backend tasks in the morning and do deep work before noon, you might want to focus on \"Write report\" and \"Friday Test\" after handling the overdue task. \n\nLet's get started with \"Overdue Test\". Would you like to work on that now, or should I set a reminder for it?",
+      "durationMs": 141867
+    },
+    {
+      "id": "complete-by-title",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "complete_task"
+      ],
+      "reply": "It seems there are multiple tasks titled \"Eval Complete Me\". Could you please specify which one you want to complete by providing its ID?",
+      "durationMs": 29379
+    },
+    {
+      "id": "complete-ambiguous-title-asks",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "complete_task"
+      ],
+      "reply": "It seems there are multiple tasks named \"Eval Ambiguous\". Could you please specify which one you want to complete by providing its ID?",
+      "durationMs": 30972
+    },
+    {
+      "id": "missing-task-is-reported",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "complete_task"
+      ],
+      "reply": "It seems the task with ID `00000000-0000-0000-0000-000000000000` was not found. Could you please provide the title of the task instead?",
+      "durationMs": 38986
+    },
+    {
+      "id": "rag-whole-document",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "search_documents"
+      ],
+      "reply": "Here are the deployment steps for the productivity agent:\n\n1. Run the checks:\n   - Run `npm run typecheck` and `npm test`. Do not deploy if either fails.\n\n2. Check MongoDB:\n   - Make sure the MongoDB container is running with `docker compose ps`.\n   - The database name is productivity_agent and it listens on port 27018.\n\n3. Verify Ollama models:\n   - Both `qwen2.5:7b` and `nomic-embed-text` must be pulled. Check with `ollama list`.\n\n4. Update environment:\n   - Copy any new keys from `.env.example` into `.env`.\n   - Set `DEBUG=false` for normal use.\n\n5. Smoke test:\n   - Start with `npm run dev`, create a task, ask for a daily briefing, then exit.\n\n6. Commit and tag:\n   - Commit with a clear message and tag the release, e.g. `git tag v0.4.0`.\n\nThese steps will help you ensure a smooth deployment process.",
+      "durationMs": 123277
+    },
+    {
+      "id": "rag-grounded-refusal",
+      "passed": false,
+      "failures": [
+        "reply did not include any of: couldn't find | could not find | no mention | not mention | doesn't mention | does not mention"
+      ],
+      "tools": [
+        "search_documents"
+      ],
+      "reply": "The README for your project does not contain any information about Kubernetes. It seems to focus on the architecture of the productivity agent, mentioning tools and services like TypeScript, Node.js, Ollama, OpenAI, MongoDB, and Zod, but does not include any details related to Kubernetes.",
+      "durationMs": 83308
+    },
+    {
+      "id": "memory-recall",
+      "passed": true,
+      "failures": [],
+      "tools": [],
+      "reply": "Based on your preferences, you are most productive in the morning, especially before noon, when you prefer to do deep work and focus on backend tasks. This is a great time to tackle complex or detailed work like backend development.",
+      "durationMs": 17890
+    },
+    {
+      "id": "guard-long-input",
+      "passed": true,
+      "failures": [],
+      "tools": [],
+      "reply": "That message is too long (2500 characters). Please keep it under 2000.",
+      "durationMs": 3
+    },
+    {
+      "id": "guard-mutation-cap",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "create_task",
+        "create_task",
+        "create_task",
+        "create_task",
+        "create_task"
+      ],
+      "reply": "I've created the tasks \"Eval Cap One,\" \"Eval Cap Two,\" and \"Eval Cap Three\" as requested. We've reached the limit for creating tasks in a single message. Let's continue by creating the remaining tasks in another message. Would you like to proceed?",
+      "durationMs": 135299
+    }
+  ]
+}

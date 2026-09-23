@@ -1,0 +1,30 @@
+{
+  "provider": "ollama",
+  "model": "qwen2.5:7b",
+  "passed": 1,
+  "total": 2,
+  "results": [
+    {
+      "id": "hitl-delete-declined",
+      "passed": false,
+      "failures": [
+        "reply did not include any of: declined | not deleted | wasn't deleted | was not deleted | cancel"
+      ],
+      "tools": [
+        "delete_task"
+      ],
+      "reply": "ERROR: fetch failed",
+      "durationMs": 1576799
+    },
+    {
+      "id": "hitl-delete-approved",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "delete_task"
+      ],
+      "reply": "The task \"Eval Delete Approved\" has been successfully deleted.",
+      "durationMs": 65111
+    }
+  ]
+}

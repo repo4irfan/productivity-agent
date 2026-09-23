@@ -8,6 +8,7 @@ import {
 import { runTurn } from "./observability/tracer";
 import { saveTrace } from "./observability/trace-repository";
 import { summarizeTrace } from "./observability/trace-summary";
+import type { ApprovalHandler } from "./guardrails/approval"
 
 import readline from "node:readline/promises";
 
@@ -64,11 +65,16 @@ async function main() {
       }
 
       try {
+
+        const approveFromTerminal: ApprovalHandler = async ({ description }) => {
+          const answer = await rl.question(`\n⚠️  ${description}\nProceed? (y/N): `);
+          return answer.trim().toLowerCase() === "y";
+        };
         
         const response = await runTurn(
           state.conversationId,
           trimmedMessage,
-          () => runAgent(state, trimmedMessage),
+          () => runAgent(state, trimmedMessage, { approve: approveFromTerminal }),
           async (trace) => {
             console.log(summarizeTrace(trace));
             await saveTrace(trace);

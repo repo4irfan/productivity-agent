@@ -5,7 +5,12 @@ export const MUTATING_TOOLS = new Set([
 const MAX_MUTATIONS_PER_TURN = 3;
 const MAX_TITLE_CHARS = 200;
 
-export type PolicyVerdict = { allowed: true } | { allowed: false; reason: string };
+export const CONFIRM_TOOLS = new Set(["delete_task"]);
+
+export type PolicyVerdict =
+  | { decision: "allow" }
+  | { decision: "deny"; reason: string }
+  | { decision: "confirm"; description: string };
 
 export function checkToolCall(
   name: string,
@@ -14,7 +19,7 @@ export function checkToolCall(
 ): PolicyVerdict {
   if (MUTATING_TOOLS.has(name) && mutationsSoFar >= MAX_MUTATIONS_PER_TURN) {
     return {
-      allowed: false,
+      decision: "deny",
       reason: `Limit reached: at most ${MAX_MUTATIONS_PER_TURN} changes per message. Ask the user to continue in a new message.`,
     };
   }
@@ -22,8 +27,16 @@ export function checkToolCall(
   const title = args["title"];
 
   if (typeof title === "string" && title.length > MAX_TITLE_CHARS) {
-    return { allowed: false, reason: `Title is too long (max ${MAX_TITLE_CHARS} characters).` };
+    return { decision: "deny", reason: `Title is too long (max ${MAX_TITLE_CHARS} characters).` };
   }
 
-  return { allowed: true };
+  if (CONFIRM_TOOLS.has(name)) {
+    const target = args["title"] ?? args["id"] ?? "?";
+    return {
+      decision: "confirm",
+      description: `${name.replace("_", " ")} → "${String(target)}"`,
+    };
+  }
+
+  return { decision: "allow" };
 }

@@ -2,6 +2,7 @@ import { runAgent } from "../src/agents/agent";
 import { runTurn, type TurnTrace } from "../src/observability/tracer";
 import type { AgentState } from "../src/agents/agent-state";
 import type { EvalCase } from "./cases";
+import { autoDeny, autoApprove } from "../src/guardrails/approval"
 
 export type EvalResult = {
   id: string;
@@ -27,7 +28,11 @@ export async function runCase(evalCase: EvalCase): Promise<EvalResult> {
     reply = await runTurn(
       state.conversationId,
       evalCase.prompt,
-      () => runAgent(state, evalCase.prompt),
+      () => runAgent(
+        state,
+        evalCase.prompt, {
+        approve: evalCase.approval === "deny" ? autoDeny : autoApprove,
+      }),
       (captured) => { trace = captured; }
     );
   } catch (error) {
@@ -39,6 +44,12 @@ export async function runCase(evalCase: EvalCase): Promise<EvalResult> {
     .map((span) => span.name);
 
   const failures = check(evalCase, tools, reply, trace);
+
+  const verifyFailure = await evalCase.verify?.();
+
+  if (verifyFailure) {
+    failures.push(verifyFailure);
+  }
 
   return {
     id: evalCase.id,

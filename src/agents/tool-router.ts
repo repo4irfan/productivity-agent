@@ -3,6 +3,8 @@ import { toolRegistry } from "./tool-registry";
 import { ToolError } from "./tool-error";
 import { traced, currentTrace } from "../observability/tracer";
 import { checkToolCall, MUTATING_TOOLS } from "../guardrails/tool-policy";
+import { autoDeny } from "../guardrails/approval";
+import type { ApprovalHandler } from "../guardrails/approval";
 import type { AnyAgentTool } from "./tool-types";
 
 type ToolName = keyof typeof toolRegistry;
@@ -21,11 +23,17 @@ function isToolName(name: string): name is ToolName {
   return name in toolRegistry;
 }
 
-export async function executeTool(name: string, argumentsJson: string): Promise<ToolResult> {
+export type ExecuteOptions = { approve: ApprovalHandler };
+
+export async function executeTool(
+  name: string,
+  argumentsJson: string,
+  options: ExecuteOptions = { approve: autoDeny }
+): Promise<ToolResult> {
   return traced(
     "tool",
     name,
-    () => executeToolInner(name, argumentsJson),
+    () => executeToolInner(name, argumentsJson, options),
     (result) => ({
       success: result.success,
       arguments: argumentsJson,
@@ -34,7 +42,11 @@ export async function executeTool(name: string, argumentsJson: string): Promise<
   );
 }
 
-async function executeToolInner(name: string, argumentsJson: string): Promise<ToolResult> {
+async function executeToolInner(
+  name: string,
+  argumentsJson: string,
+  options: ExecuteOptions
+): Promise<ToolResult> {
 
   try {
     if (!isToolName(name)) {
@@ -72,8 +84,24 @@ async function executeToolInner(name: string, argumentsJson: string): Promise<To
 
     const policy = checkToolCall(name, parsed.data, mutationsSoFar);
 
-    if (!policy.allowed) {
+    if (policy.decision === "deny") {
       return { success: false, error: policy.reason };
+    }
+
+    if (policy.decision === "confirm") {
+      const approved = await traced(
+        "approval",
+        name,
+        () => options.approve({ tool: name, args: parsed.data, description: policy.description }),
+        (result) => ({ approved: result })
+      );
+
+      if (!approved) {
+        return {
+          success: false,
+          error: "Not done: the user declined this action.",
+        };
+      }
     }
 
     const result = await tool.execute(parsed.data);
