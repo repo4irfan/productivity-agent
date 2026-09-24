@@ -28,9 +28,8 @@ export type {
   DailyBriefing,
 };
 
-export type UpdateTaskToolInput = {
-  id: string;
-  title?: string | null;
+export type UpdateTaskToolInput = TaskReference & {
+  newTitle?: string | null;
   priority?: Priority | null;
   dueDate?: string | null;
   clearDueDate?: boolean | null;
@@ -45,7 +44,7 @@ export async function updateTask(
 ): Promise<Task> {
   const changes: UpdateTaskInput = {};
 
-  if (input.title) changes.title = input.title;
+  if (input.newTitle) changes.title = input.newTitle;
   if (input.priority) changes.priority = input.priority;
   if (input.dueDate) changes.dueDate = input.dueDate;
   if (input.clearDueDate) changes.dueDate = null;
@@ -54,7 +53,7 @@ export async function updateTask(
     throw new ToolError("No changes were provided.");
   }
 
-  const task = await updateTaskInDb(input.id, changes);
+  const task = await updateTaskInDb(await resolveTaskId(input), changes);
 
   if (!task) {
     throw new ToolError("Task not found.");

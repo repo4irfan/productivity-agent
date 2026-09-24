@@ -57,7 +57,10 @@ export class OllamaClient implements LLMClient, EmbeddingClient {
       ],
       tools: request.tools?.map(toOllamaTool),
       format: request.jsonSchema,
-      options: { num_ctx: this.options.numCtx ?? 8192 },
+      options: {
+        num_ctx: this.options.numCtx ?? 8192,
+        temperature: Number(process.env.LLM_TEMPERATURE ?? 0),
+      },
       keep_alive: "30m",
     });
 

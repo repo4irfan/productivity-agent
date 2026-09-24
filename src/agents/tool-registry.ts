@@ -71,8 +71,9 @@ const createTaskTool: AgentTool<
 
 const updateTaskTool: AgentTool<
   {
-    id: string;
+    id?: string | null;
     title?: string | null;
+    newTitle?: string | null;
     priority?: "low" | "medium" | "high" | null;
     dueDate?: string | null;
     clearDueDate?: boolean | null;
@@ -82,11 +83,12 @@ const updateTaskTool: AgentTool<
   name: "update_task",
 
   description:
-    "Change a task's title, priority, or due date. Only include the fields that should change.",
+    "Change a task's priority, due date, or name. Identify the task by `id`, or by `title` if you don't have the id. Use `newTitle` to rename it. Only include the fields that should change.",
 
   schema: z.object({
-    id: z.string().uuid(),
+    id: z.string().uuid().nullable().optional(),
     title: z.string().min(1).nullable().optional(),
+    newTitle: z.string().min(1).nullable().optional(),
     priority: z.enum(["low", "medium", "high"]).nullable().optional(),
     dueDate: z.iso.date().nullable().optional(),
     clearDueDate: z.boolean().nullable().optional(),
@@ -96,12 +98,16 @@ const updateTaskTool: AgentTool<
     type: "object",
     properties: {
       id: {
-        type: "string",
-        description: "The ID of the task to update.",
+        type: ["string", "null"],
+        description: "The ID of the task to update, if known.",
       },
       title: {
         type: ["string", "null"],
-        description: "New title, or null to leave unchanged.",
+        description: "The task's current title, used to find it when the ID is not known.",
+      },
+      newTitle: {
+        type: ["string", "null"],
+        description: "New name for the task. Only set this when renaming.",
       },
       priority: {
         type: ["string", "null"],
@@ -117,11 +123,11 @@ const updateTaskTool: AgentTool<
         description: "true to remove the due date.",
       },
     },
-    required: ["id"],
+    required: [],
     additionalProperties: false,
   },
 
-  execute: async (input) => updateTask(input),
+  execute: async (reference) => updateTask(reference),
 };
 
 const listTasksTool: AgentTool<
@@ -135,7 +141,7 @@ const listTasksTool: AgentTool<
   name: "list_tasks",
 
   description:
-    "List tasks, optionally filtered. By default returns only open (incomplete) tasks.",
+    "List tasks, optionally filtered by status, priority, or due date (overdue, today, this week). By default returns only open tasks.",
 
   schema: z.object({
     status: z.enum(["open", "completed", "all"]).optional(),
@@ -179,7 +185,7 @@ const findTasksTool: AgentTool<
   name: "find_tasks",
 
   description:
-    "Find tasks whose title contains the given text. Use this to look up a task's ID when the user refers to it by name.",
+    "Search tasks by title text and return the matches. Use only to answer questions like \"do I have a task about X?\" or to list matching tasks. Do NOT call this before complete_task, delete_task, or update_task — those accept a title directly.",
 
   schema: z.object({
     query: z.string().min(1),
@@ -231,7 +237,7 @@ const deleteTaskTool: AgentTool<
 
   
   description:
-    "Mark a task as deleted. Give its id, or its title if you don't have the id.",
+    "Permanently delete a task. This cannot be undone. Give its id, or its title if you don't have the id.",
   schema: z.object({
     id: z.string().uuid().nullable().optional(),
     title: z.string().min(1).nullable().optional(),
@@ -280,7 +286,7 @@ const rememberTool: AgentTool<
   name: "remember",
 
   description:
-    "Save a useful piece of information about the user for future conversations.",
+    "Most facts are saved automatically; call this only when the user explicitly asks you to remember something.",
 
   schema: z.object({
     content: z.string().min(1),
@@ -311,7 +317,7 @@ const getMemoriesTool: AgentTool<
   name: "get_memories",
 
   description:
-    "Retrieve information previously remembered about the user.",
+    "List everything remembered about the user. Use only when the user asks what you remember about them; for a specific fact, use search_memory.",
 
   schema: z.object({}),
 
@@ -380,7 +386,7 @@ const readDocumentTool: AgentTool<
 const searchDocumentsTool: AgentTool<{ query: string }, Awaited<ReturnType<typeof searchDocuments>>> = {
   name: "search_documents",
   description:
-    "Search the user's ingested documents and notes. Returns at most 4 passages — not suitable for listing all steps or summarizing a whole document; use read_document for that.",
+    "Search the user's ingested documents and notes for a specific fact, and return the most relevant passages with their document titles.",
   schema: z.object({ query: z.string().min(1) }),
   openAISchema: {
     type: "object",

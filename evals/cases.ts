@@ -64,6 +64,18 @@ export const cases: EvalCase[] = [
     expectToolArgs: { complete_task: { title: "Eval Complete Me" } },
   },
   {
+    id: "rename-by-title",
+    prompt: "rename the task called Eval Rename Me to Eval Renamed",
+    setup: () => givenTask("Eval Rename Me"),
+    expectTools: ["update_task"],
+    forbidTools: ["find_tasks"],
+    expectToolArgs: { update_task: { title: "Eval Rename Me", newTitle: "Eval Renamed" } },
+    verify: async () => {
+      const count = await countTasks("Eval Renamed");
+      return count === 1 ? null : `expected the renamed task, found ${count}`;
+    },
+  },
+  {
     id: "complete-ambiguous-title-asks",
     prompt: "complete the task called Eval Ambiguous",
     setup: async () => {

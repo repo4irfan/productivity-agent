@@ -59,6 +59,7 @@ export class OpenAIClient implements LLMClient, EmbeddingClient {
             json_schema: { name: "response", schema: request.jsonSchema },
           }
         : undefined,
+      temperature: Number(process.env.LLM_TEMPERATURE ?? 0),
     });
 
     if (this.options.debug) {
