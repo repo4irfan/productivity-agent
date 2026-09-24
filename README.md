@@ -80,6 +80,55 @@ Agent: You prefer deep work before noon, especially on backend tasks.
 - Zod validation errors are fed back to the model so it can self-correct
 - Internal errors (database, network) are converted into safe messages before reaching the model
 - Malformed tool arguments, unknown tools, and missing resources are all handled
+- Requests to the LLM time out instead of hanging indefinitely
+
+### Guardrails
+
+Rules enforced by code, not by the prompt, at the three points where model output passes through the application:
+
+| Point | Guard | Examples |
+|---|---|---|
+| Before the model | input guard | over-long messages answered without an LLM call; messages containing credentials are never written to memory |
+| Before a tool runs | tool policy | at most 3 changes per message; absurd arguments rejected; destructive actions require confirmation |
+| Before the user sees a reply | output guard | a reply claiming "I've completed it" is blocked unless the trace shows a successful mutation |
+
+### Human-in-the-loop
+
+Destructive actions pause for approval. The agent receives an `approve` function from its caller, so the CLI asks the user while evals pass a function that auto-approves or auto-denies:
+
+```text
+⚠️  delete task → "Weekly Review"
+Proceed? (y/N):
+```
+
+Declining returns a tool error; nothing is deleted, and the decision is recorded in the trace.
+
+### Observability
+
+Every turn produces one trace — each LLM call with its duration and token counts, each embedding, each tool call and its result, retrieval scores, and the outcome. Traces are stored in MongoDB and summarized on one line:
+
+```text
+[trace 77953b4] 22.5s · llm ×3 (memory-extraction 3.0s · agent 6.7s · agent 6.5s) · prompt 4894 tok, 98% cached · embed ×1 · tools: delete_task ✗ · memories 3 (top 0.583) · reply
+```
+
+Spans are collected with `AsyncLocalStorage`, so any layer can record one without having a trace threaded through its parameters. `npm run traces` aggregates the last 50 turns.
+
+### Evaluation
+
+18 cases covering tool selection, argument correctness, grounded answers, guardrails, and confirmation flows. Each case runs against the real agent and is checked against the trace, so an assertion can require that a specific tool was called with specific arguments — not merely that the reply sounded right.
+
+```text
+✓ complete-by-title                      15.2s  tools: complete_task
+✗ create-task                            24.9s  tools: create_task
+     create_task.priority: expected undefined, got "medium"
+```
+
+```bash
+npm run eval                 # all cases
+npm run eval -- rag          # cases whose id contains "rag"
+```
+
+Results are written to `evals/results/` (gitignored); milestone runs are kept in `evals/baselines/`.
 
 ## 🏗️ Architecture
 
@@ -95,6 +144,18 @@ src/
 │   ├── tool-router.ts           # lookup → parse → validate → execute → normalize
 │   ├── tool-types.ts
 │   └── tool-error.ts
+│
+├── guardrails/
+│   ├── approval.ts               # ApprovalHandler contract
+│   ├── input-guard.ts            # length, credential detection
+│   ├── tool-policy.ts            # allow / deny / confirm
+│   └── output-guard.ts           # false-claim detection against the trace
+│
+├── observability/
+│   ├── tracer.ts                 # AsyncLocalStorage spans
+│   ├── trace-repository.ts
+│   ├── trace-summary.ts
+│   └── logger.ts
 │
 ├── llm/
 │   ├── llm-client.ts            # LLMClient + EmbeddingClient interfaces
@@ -129,7 +190,14 @@ scripts/
 ├── search-documents.ts          # inspect retrieval scores
 ├── search-memories.ts
 ├── backfill-embeddings.ts
-└── dedupe-memories.ts
+├── dedupe-memories.ts
+├── eval.ts                      # run the evaluation suite
+└── traces.ts                    # summarize recent turns
+
+evals/
+├── cases.ts                     # the test set
+├── runner.ts                    # runs one case, checks it against the trace
+└── fixtures.ts                  # eval data setup and reset
 ```
 
 The layers:
@@ -167,10 +235,23 @@ Covered so far:
 - Embeddings, cosine similarity, vector search
 - Semantic long-term memory with automatic retrieval
 - RAG: chunking, retrieval, parent-document expansion, grounded answers
+- Tracing and observability for agent turns
+- Evaluation: asserting tool choice and grounded answers, not just output text
+- Guardrails: input, tool-policy, and output checks enforced in code
+- Human-in-the-loop approval for irreversible actions
+- Why LLM output is non-deterministic, and what temperature does about it
 
 ### The pattern that kept showing up
 
 **The model decides *what*; code decides *how*.** Every time the agent was asked to do something precise—find a task ID in a long list, convert "next Monday" to a date, gather a daily briefing, decide whether to return a passage or a whole document—a 7B model got it wrong often enough to matter. Each time, the fix was the same: give the model a tool that expresses the *intent* and let deterministic code do the work (`find_tasks`, `get_daily_briefing`, parent-document expansion). Prompt rules alone were never enough.
+
+### Three lessons that cost the most time
+
+**A stale tool description is indistinguishable from a bad model.** Each tool is declared three times — Zod schema, JSON schema, and description — and all three must agree. When `complete_task` started accepting titles, `find_tasks` still said "use this to look up a task's ID", so the model kept calling it first. Two tests now catch that drift.
+
+**Default temperature is wrong for agents.** Ollama defaults to `temperature: 0.8`. The same eval case passed and failed on alternating runs until it was set to 0 — the model was sampling, not choosing.
+
+**A bad eval sends you debugging the wrong layer.** Three consecutive "agent bugs" turned out to be leftover test data, an assertion that guessed at the cause instead of reporting the actual count, and copy-pasted task titles. Evals need isolated fixtures and assertions that print real values.
 
 ## 🛠️ Getting Started
 
@@ -205,9 +286,13 @@ cp .env.example .env
 ```text
 LLM_PROVIDER=ollama          # ollama | openai
 LLM_MODEL=qwen2.5:7b
+LLM_TEMPERATURE=0            # 0 for reliable tool selection
 EMBEDDING_MODEL=nomic-embed-text
+OLLAMA_HOST=http://127.0.0.1:11434
 OLLAMA_NUM_CTX=8192
+OLLAMA_TIMEOUT_MS=180000
 DEBUG=false                  # true → print raw model responses
+LOG_LEVEL=info               # silent | info | debug
 OPENAI_API_KEY=              # only for LLM_PROVIDER=openai
 ```
 
@@ -243,6 +328,8 @@ Then ask the agent about it: `what do my notes say about ...?`
 | `npm run search:memories -- "query"` | same, for memories |
 | `npm run backfill:embeddings` | re-embed all memories (after changing embedding model) |
 | `npm run dedupe:memories` | remove near-duplicate memories |
+| `npm run eval [-- filter]` | run the evaluation suite |
+| `npm run traces` | summarize the last 50 turns (latency, cache hits, time by kind) |
 
 ## 💬 Example
 
@@ -282,6 +369,7 @@ Agent: From your "Deploy checklist": 1. Run the checks ... 6. Commit and tag.
 In the order I intend to tackle them:
 
 - [ ] **Workflow orchestration** — multi-step plans (e.g. weekly review) as code, not prompts
+- [ ] **Eval pass rates** — run each case N times and report a rate, not pass/fail
 - [ ] **MCP integration** — expose tools over MCP and consume external MCP servers
 - [ ] **Anthropic adapter** — third provider through the same interface
 - [ ] **Vector database** — replace brute-force cosine when the collection outgrows it
@@ -299,6 +387,8 @@ Frameworks are useful for production, but implementing the fundamentals manually
 - How context windows and prompt caches are managed
 - What an embedding is, and what a vector database is actually solving
 - Why "just add a rule to the prompt" so often isn't enough
+- How to tell "the model got it wrong" from "my code got it wrong"
+- What it takes to make a non-deterministic system testable
 
 Once these are understood, frameworks can be evaluated from a much stronger technical foundation.
 
