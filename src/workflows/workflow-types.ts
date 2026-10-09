@@ -2,7 +2,7 @@ export type WorkflowData = Record<string, unknown>;
 
 export type StepResult =
   | { type: "continue"; data?: WorkflowData }   // go to the next step now
-  | { type: "ask"; question: string }           // stop, wait for the user's next message
+  | { type: "ask"; question: string; repeat?: boolean }           // stop, wait for the user's next message
   | { type: "finish"; summary: string };        // workflow is over
 
 export type StepContext = {

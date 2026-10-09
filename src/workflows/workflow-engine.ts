@@ -57,14 +57,17 @@ async function advance(
 
     if (!step) {
       await saveRun(run.id, { status: "done", data, stepIndex });
-      return { reply: "The review is complete.", finished: true };
+      return { reply: "Workflow complete.", finished: true };
     }
 
     const result = await step.run({ data, answer: currentAnswer });
     currentAnswer = undefined;      // the answer belongs to one step only
 
     if (result.type === "ask") {
-      await saveRun(run.id, { stepIndex: stepIndex + 1, data });
+      await saveRun(run.id, {
+        stepIndex: result.repeat ? stepIndex : stepIndex + 1,
+        data,
+      });
       return { reply: result.question, finished: false };
     }
 

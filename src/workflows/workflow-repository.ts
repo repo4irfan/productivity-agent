@@ -28,7 +28,13 @@ export async function createRun(
 export async function getActiveRun(
   conversationId: string
 ): Promise<WorkflowRun | null> {
-  return runsCollection.findOne({ conversationId, status: "awaiting_input" });
+  const cutoff = new Date(Date.now() - 60 * 60 * 1000);
+
+  return runsCollection.findOne({
+    conversationId,
+    status: "awaiting_input",
+    updatedAt: { $gte: cutoff },
+  });
 }
 
 export async function saveRun(

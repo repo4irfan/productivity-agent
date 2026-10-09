@@ -55,8 +55,12 @@ export const weeklyReview: WorkflowDefinition = {
       run: async ({ data, answer }) => {
         const focus = answer?.trim();
 
-        if (!focus) {
-          return { type: "ask", question: "What is your main focus for next week?" };
+        if (!focus || focus.length < 5) {
+          return {
+            type: "ask",
+            repeat: true,
+            question: "Could you say a bit more about your focus for next week?",
+          };
         }
 
         await remember(`Focus for the week of ${new Date().toLocaleDateString("en-CA")}: ${focus}`);

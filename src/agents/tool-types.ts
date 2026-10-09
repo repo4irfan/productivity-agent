@@ -19,6 +19,8 @@ export type AgentTool<TArgs, TResult> = {
   description: string;
   schema: z.ZodType<TArgs>;
   openAISchema: OpenAIToolParameters;
+  /** When true, this tool's output is the final reply; the model does not see it. */
+  returnDirect?: boolean;
   execute: (args: TArgs) => Promise<TResult>;
 };
 

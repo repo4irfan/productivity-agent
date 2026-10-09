@@ -17,6 +17,7 @@ import { checkOutput } from "../guardrails/output-guard";
 import { autoDeny } from "../guardrails/approval";
 
 import { resumeWorkflow } from "../workflows/workflow-engine";
+import { toolRegistry } from "./tool-registry";
 
 import type { ApprovalHandler } from "../guardrails/approval"
 import type { AgentState, AgentMessage } from "./agent-state";
@@ -107,6 +108,7 @@ ${state.summary}
     : "";
   
     const system = `
+Always reply in English.
 You are a productivity assistant.
 
 You can:
@@ -259,6 +261,18 @@ while (true) {
         tool_name: toolCall.name,
         content: JSON.stringify(result),
       });
+
+      const tool = toolRegistry[toolCall.name as keyof typeof toolRegistry];
+
+      if (tool?.returnDirect && result.success) {
+        const direct = (result.data as { reply?: string }).reply;
+
+        if (direct) {
+          state.conversation.push({ role: "assistant", content: direct });
+          await persistAgentState(state);
+          return direct;
+        }
+      }
 
       await persistAgentState(state);
     }

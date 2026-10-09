@@ -11,7 +11,6 @@ const selected = only ? cases.filter((c) => c.id.includes(only)) : cases;
 const provider = process.env.LLM_PROVIDER ?? "ollama";
 const model = process.env.LLM_MODEL ?? "?";
 
-await resetEvalData();
 
 console.log(`Running ${selected.length} cases on ${provider}/${model}\n`);
 
@@ -39,4 +38,5 @@ await mkdir("evals/results", { recursive: true });
 await writeFile(file, JSON.stringify({ provider, model, passed, total: results.length, results }, null, 2));
 
 console.log(`Saved ${file}`);
+await resetEvalData();
 process.exit(passed === results.length ? 0 : 1);

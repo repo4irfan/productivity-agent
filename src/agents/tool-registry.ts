@@ -423,7 +423,7 @@ const startWeeklyReviewTool: AgentTool<Record<string, never>, Awaited<ReturnType
     required: [],
     additionalProperties: false,
   },
-  
+  returnDirect: true,
   execute: async () => {
     const conversationId = currentTrace()?.conversationId;
 
