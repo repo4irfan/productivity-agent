@@ -35,13 +35,15 @@ export const weeklyReview: WorkflowDefinition = {
         const overdue = data["overdueTitles"] as string[];
 
         const lines = [
-          `Last week you completed ${completed.length} task(s)${
-            completed.length ? `: ${completed.join(", ")}` : ""
-          }.`,
+          `Last week you completed ${completed.length} ${
+            completed.length === 1 ? "task" : "tasks"
+          }${completed.length ? `: ${completed.join(", ")}` : ""}.`,
           overdue.length
-            ? `${overdue.length} are overdue: ${overdue.join(", ")}.`
+            ? `${overdue.length} ${overdue.length === 1 ? "is" : "are"} overdue: ${overdue.join(", ")}.`
             : "Nothing is overdue.",
-          `You have ${data["openCount"]} open task(s).`,
+          `You have ${data["openCount"]} open ${
+            data["openCount"] === 1 ? "task" : "tasks"
+          }.`,
           "",
           "What is your main focus for next week?",
         ];
