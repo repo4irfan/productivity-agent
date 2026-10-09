@@ -173,6 +173,14 @@ export async function getDailyBriefing(): Promise<DailyBriefing> {
   };
 }
 
+export async function listCompletedSince(since: Date): Promise<Task[]> {
+  const tasks = await tasksCollection
+    .find({ completed: true, completedAt: { $gte: since } })
+    .toArray();
+
+  return tasks.map(toTask);
+}
+
 function toTask(document: Task): Task {
   return {
     id: document.id,

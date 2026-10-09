@@ -161,4 +161,10 @@ export const cases: EvalCase[] = [
     expectTools: ["delete_task"],
     answerExcludes: ["declined"],
   },
+  {
+    id: "workflow-starts",
+    prompt: "let's do my weekly review",
+    expectTools: ["start_weekly_review"],
+    answerIncludesAny: ["focus for next week"],
+  },
 ];

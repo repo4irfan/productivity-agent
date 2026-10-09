@@ -14,7 +14,9 @@ import {
 import { log } from "../observability/logger";
 import { checkInput } from "../guardrails/input-guard";
 import { checkOutput } from "../guardrails/output-guard";
-import { autoDeny } from "../guardrails/approval"
+import { autoDeny } from "../guardrails/approval";
+
+import { resumeWorkflow } from "../workflows/workflow-engine";
 
 import type { ApprovalHandler } from "../guardrails/approval"
 import type { AgentState, AgentMessage } from "./agent-state";
@@ -34,6 +36,16 @@ export async function runAgent(
     state.conversation.push({ role: "assistant", content: input.reply });
     await persistAgentState(state);
     return input.reply;
+  }
+
+  const workflowTurn = await resumeWorkflow(state.conversationId, latestMessage);
+
+  if (workflowTurn) {
+    state.conversation.push({ role: "user", content: latestMessage });
+    state.conversation.push({ role: "assistant", content: workflowTurn.reply });
+    await persistAgentState(state);
+
+    return workflowTurn.reply;
   }
 
   // --------------------------------
@@ -108,6 +120,7 @@ You can:
 - Remember information
 - Search remembered information
 - Search the user's documents
+- Run a weekly review
 
 Rules:
 - Use tools when an action requires accessing or modifying data.
@@ -157,6 +170,8 @@ Rules:
 - To delete a task, call delete_task. Never ask the user to confirm first —
   confirmation is handled outside this conversation. If the tool result says
   the user declined, tell them it was not deleted.
+- When the user asks for a weekly review, call start_weekly_review and relay
+  its output to the user exactly as returned. Do not summarize or rewrite it.
 
 Calendar (use this to convert relative dates to YYYY-MM-DD — do not calculate dates yourself):
 ${buildCalendarContext()}

@@ -22,6 +22,10 @@ import {
   listDocuments
 } from "../tools/document-tools";
 
+import { ToolError } from "./tool-error";
+import { currentTrace } from "../observability/tracer";
+import { startWeeklyReview } from "../tools/workflow-tools";
+
 import type { AgentTool } from "./tool-types";
 
 
@@ -408,6 +412,30 @@ const listDocumentsTool: AgentTool<Record<string, never>, Awaited<ReturnType<typ
 };
 
 
+const startWeeklyReviewTool: AgentTool<Record<string, never>, Awaited<ReturnType<typeof startWeeklyReview>>> = {
+  name: "start_weekly_review",
+  description:
+    "Start the weekly review: summarizes last week and asks the user what to focus on next. Use when the user asks for a weekly review or to reflect on their week.",
+  schema: z.object({}),
+  openAISchema: {
+    type: "object",
+    properties: {},
+    required: [],
+    additionalProperties: false,
+  },
+  
+  execute: async () => {
+    const conversationId = currentTrace()?.conversationId;
+
+    if (!conversationId) {
+      throw new ToolError("No active conversation.");
+    }
+
+    return startWeeklyReview(conversationId);
+  },
+};
+
+
 export const toolRegistry = {
   create_task: createTaskTool,
   update_task: updateTaskTool,
@@ -423,5 +451,7 @@ export const toolRegistry = {
 
   read_document: readDocumentTool,
   search_documents: searchDocumentsTool,
-  list_documents: listDocumentsTool
+  list_documents: listDocumentsTool,
+
+  start_weekly_review: startWeeklyReviewTool
 };
