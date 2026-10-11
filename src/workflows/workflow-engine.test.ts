@@ -50,7 +50,10 @@ describe("runSteps", () => {
   it("throws if steps never stop", async () => {
     const looping: WorkflowDefinition = {
       name: "loop",
-      steps: [{ id: "forever", run: async () => ({ type: "continue" }) }],
+      steps: Array.from({ length: 11 }, (_, index) => ({
+        id: `step-${index}`,
+        run: async () => ({ type: "continue" as const }),
+      })),
     };
 
     await expect(runSteps(looping, 0, {})).rejects.toThrow("maximum number of steps");
