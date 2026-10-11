@@ -1,5 +1,5 @@
 import { getActiveRun, createRun, saveRun } from "./workflow-repository";
-import type { WorkflowDefinition, WorkflowRun } from "./workflow-types";
+import type { WorkflowDefinition, WorkflowRun, WorkflowData } from "./workflow-types";
 import { weeklyReview } from "./weekly-review";
 
 const workflows: Record<string, WorkflowDefinition> = {
@@ -9,6 +9,13 @@ const workflows: Record<string, WorkflowDefinition> = {
 const MAX_STEPS_PER_TURN = 10;
 
 export type WorkflowTurnResult = { reply: string; finished: boolean };
+
+export type StepOutcome = {
+  reply: string;
+  finished: boolean;
+  stepIndex: number;
+  data: WorkflowData;
+};
 
 export async function startWorkflow(
   name: string,
@@ -37,6 +44,47 @@ export async function resumeWorkflow(
   return advance(run, answer);
 }
 
+/** Pure: runs steps until one asks or finishes. No database access. */
+export async function runSteps(
+  definition: WorkflowDefinition,
+  startIndex: number,
+  startData: WorkflowData,
+  answer?: string
+): Promise<StepOutcome> {
+  let stepIndex = startIndex;
+  let data = startData;
+  let currentAnswer = answer;
+
+  for (let guard = 0; guard < MAX_STEPS_PER_TURN; guard++) {
+    const step = definition.steps[stepIndex];
+
+    if (!step) {
+      return { reply: "Workflow complete.", finished: true, stepIndex, data };
+    }
+
+    const result = await step.run({ data, answer: currentAnswer });
+    currentAnswer = undefined;
+
+    if (result.type === "ask") {
+      return {
+        reply: result.question,
+        finished: false,
+        stepIndex: result.repeat ? stepIndex : stepIndex + 1,
+        data,
+      };
+    }
+
+    if (result.type === "finish") {
+      return { reply: result.summary, finished: true, stepIndex, data };
+    }
+
+    data = { ...data, ...(result.data ?? {}) };
+    stepIndex++;
+  }
+
+  throw new Error("Workflow exceeded the maximum number of steps in one turn.");
+}
+
 async function advance(
   run: WorkflowRun,
   answer?: string
@@ -48,40 +96,15 @@ async function advance(
     throw new Error(`Unknown workflow: ${run.workflowName}`);
   }
 
-  let stepIndex = run.stepIndex;
-  let data = run.data;
-  let currentAnswer = answer;
+  const outcome = await runSteps(definition, run.stepIndex, run.data, answer);
 
-  for (let guard = 0; guard < MAX_STEPS_PER_TURN; guard++) {
-    const step = definition.steps[stepIndex];
+  await saveRun(run.id, {
+    stepIndex: outcome.stepIndex,
+    data: outcome.data,
+    ...(outcome.finished ? { status: "done" as const } : {}),
+  });
 
-    if (!step) {
-      await saveRun(run.id, { status: "done", data, stepIndex });
-      return { reply: "Workflow complete.", finished: true };
-    }
-
-    const result = await step.run({ data, answer: currentAnswer });
-    currentAnswer = undefined;      // the answer belongs to one step only
-
-    if (result.type === "ask") {
-      await saveRun(run.id, {
-        stepIndex: result.repeat ? stepIndex : stepIndex + 1,
-        data,
-      });
-      return { reply: result.question, finished: false };
-    }
-
-    if (result.type === "finish") {
-      await saveRun(run.id, { status: "done", data, stepIndex });
-      return { reply: result.summary, finished: true };
-    }
-
-    data = { ...data, ...(result.data ?? {}) };
-    stepIndex++;
-  }
-
-  await saveRun(run.id, { status: "cancelled", data });
-  throw new Error("Workflow exceeded the maximum number of steps in one turn.");
+  return { reply: outcome.reply, finished: outcome.finished };
 }
 
 function isCancellation(answer: string): boolean {
