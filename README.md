@@ -68,6 +68,29 @@ Agent: You prefer deep work before noon, especially on backend tasks.
 - Parent-document expansion: when several hits come from one small document, the whole document is returned in order
 - The agent answers only from retrieved passages and cites the document
 
+### Workflows
+
+A workflow is a multi-turn process whose order is decided by code, not by the model. It saves its progress, so it can pause for the user's reply and resume on the next message.
+
+The weekly review gathers last week's completions, overdue work and open tasks, asks what you want to focus on, remembers the answer, and summarizes:
+
+```text
+You: let's do my weekly review
+     Last week you completed 0 tasks.
+     1 is overdue: Write report.
+     You have 75 open tasks.
+
+     What is your main focus for next week?
+You: ok
+     Could you say a bit more about your focus for next week?
+You: shipping the MCP integration
+     Noted — your focus for next week is: shipping the MCP integration. ...
+```
+
+Only the first turn calls the model — it decides to start the workflow. The remaining turns run in code, in about 0.1s each with no LLM call, and the text the user sees is assembled from real data rather than generated, so the numbers can't be wrong.
+
+A step returns one of three things: `continue` (run the next step now), `ask` (stop and wait for the user, optionally repeating this step), or `finish`. The engine's step-running logic is a pure function, so it is unit-tested without a database or a model.
+
 ### Conversation Persistence
 
 - Conversations are stored in MongoDB and can be resumed by ID
@@ -115,7 +138,7 @@ Spans are collected with `AsyncLocalStorage`, so any layer can record one withou
 
 ### Evaluation
 
-18 cases covering tool selection, argument correctness, grounded answers, guardrails, and confirmation flows. Each case runs against the real agent and is checked against the trace, so an assertion can require that a specific tool was called with specific arguments — not merely that the reply sounded right.
+20 cases covering tool selection, argument correctness, grounded answers, guardrails, confirmation flows, and multi-turn workflows. Each case runs against the real agent and is checked against the trace, so an assertion can require that a specific tool was called with specific arguments — not merely that the reply sounded right. A case can send several messages in one conversation and assert each turn separately, which is the only way to test anything that spans turns.
 
 ```text
 ✓ complete-by-title                      15.2s  tools: complete_task
@@ -178,10 +201,17 @@ src/
 │   ├── task-repository.ts
 │   └── conversation-repository.ts
 │
+├── workflows/
+│   ├── workflow-types.ts         # steps return continue / ask / finish
+│   ├── workflow-engine.ts        # pure runSteps + persistence
+│   ├── workflow-repository.ts
+│   └── weekly-review.ts
+│
 ├── tools/
 │   ├── task-tools.ts
 │   ├── memory-tools.ts
-│   └── document-tools.ts
+│   ├── document-tools.ts
+│   └── workflow-tools.ts
 │
 └── index.ts                     # CLI
 
@@ -240,6 +270,8 @@ Covered so far:
 - Guardrails: input, tool-policy, and output checks enforced in code
 - Human-in-the-loop approval for irreversible actions
 - Why LLM output is non-deterministic, and what temperature does about it
+- Workflow orchestration: resumable multi-turn processes driven by code
+- Returning tool output directly to the user when the model must not rewrite it
 
 ### The pattern that kept showing up
 
@@ -250,6 +282,8 @@ Covered so far:
 **A stale tool description is indistinguishable from a bad model.** Each tool is declared three times — Zod schema, JSON schema, and description — and all three must agree. When `complete_task` started accepting titles, `find_tasks` still said "use this to look up a task's ID", so the model kept calling it first. Two tests now catch that drift.
 
 **Default temperature is wrong for agents.** Ollama defaults to `temperature: 0.8`. The same eval case passed and failed on alternating runs until it was set to 0 — the model was sampling, not choosing.
+
+**Some output must never pass through the model.** The weekly review returns real counts and task titles. Asking the model to "relay this exactly" did not work — it summarized eleven overdue tasks down to four. Tools now carry a `returnDirect` flag: their output goes straight to the user and the model never sees it.
 
 **A bad eval sends you debugging the wrong layer.** Three consecutive "agent bugs" turned out to be leftover test data, an assertion that guessed at the cause instead of reporting the actual count, and copy-pasted task titles. Evals need isolated fixtures and assertions that print real values.
 
@@ -363,13 +397,15 @@ Agent: From your "Deploy checklist": 1. Run the checks ... 6. Commit and tag.
 - [x] **Agent evaluation** — a repeatable test set for tool selection, date handling, grounded answers
 - [x] **Guardrails** — input/output checks, confirmation before destructive actions
 - [x] **Human-in-the-loop** — approve or edit tool calls before execution
+- [x] **Workflow orchestration** — resumable multi-turn processes (weekly review)
+- [x] **Multi-turn evaluation** — cases that send several messages and assert each turn
 
 ### Planned
 
 In the order I intend to tackle them:
 
-- [ ] **Workflow orchestration** — multi-step plans (e.g. weekly review) as code, not prompts
 - [ ] **Eval pass rates** — run each case N times and report a rate, not pass/fail
+- [ ] **LLM-as-judge assertions** — substring checks cannot cover every phrasing of a correct answer
 - [ ] **MCP integration** — expose tools over MCP and consume external MCP servers
 - [ ] **Anthropic adapter** — third provider through the same interface
 - [ ] **Vector database** — replace brute-force cosine when the collection outgrows it
