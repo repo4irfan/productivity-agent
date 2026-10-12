@@ -277,7 +277,7 @@ Covered so far:
 
 **The model decides *what*; code decides *how*.** Every time the agent was asked to do something precise—find a task ID in a long list, convert "next Monday" to a date, gather a daily briefing, decide whether to return a passage or a whole document—a 7B model got it wrong often enough to matter. Each time, the fix was the same: give the model a tool that expresses the *intent* and let deterministic code do the work (`find_tasks`, `get_daily_briefing`, parent-document expansion). Prompt rules alone were never enough.
 
-### Three lessons that cost the most time
+### Lessons that cost the most time
 
 **A stale tool description is indistinguishable from a bad model.** Each tool is declared three times — Zod schema, JSON schema, and description — and all three must agree. When `complete_task` started accepting titles, `find_tasks` still said "use this to look up a task's ID", so the model kept calling it first. Two tests now catch that drift.
 
