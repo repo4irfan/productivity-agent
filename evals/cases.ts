@@ -1,8 +1,7 @@
-import { givenTask, countTasks } from "./fixtures";
+import { givenTask, countTasks, countMemories } from "./fixtures";
 
-export type EvalCase = {
-  id: string;
-  prompt: string;
+/** Assertions that can apply to any single turn. */
+export type TurnExpectations = {
   /** Tools that must appear, in this relative order. */
   expectTools?: string[];
   /** Tools that must not appear. */
@@ -15,11 +14,25 @@ export type EvalCase = {
   answerIncludesAny?: string[];
   /** None of these may appear in the reply. */
   answerExcludes?: string[];
-  /** Runs before the prompt, e.g. to create a task the prompt refers to. */
-  setup?: () => Promise<void>;
-    /** How the simulated human answers confirmation prompts. Default: approve. */
+};
+
+/** One message in a multi-turn case. */
+export type EvalTurn = TurnExpectations & {
+  prompt: string;
+  /** How the simulated human answers confirmation prompts in this turn. */
   approval?: "approve" | "deny";
-  /** Runs after the turn; return a failure message or null. */
+};
+
+export type EvalCase = TurnExpectations & {
+  id: string;
+  prompt: string;
+  /** Further messages sent in the same conversation, each with its own assertions. */
+  followUps?: EvalTurn[];
+  /** Default answer to confirmation prompts for all turns. Default: approve. */
+  approval?: "approve" | "deny";
+  /** Runs before the first prompt, e.g. to create a task the prompt refers to. */
+  setup?: () => Promise<void>;
+  /** Runs after the last turn; return a failure message or null. */
   verify?: () => Promise<string | null>;
 };
 
@@ -101,7 +114,18 @@ export const cases: EvalCase[] = [
     id: "rag-grounded-refusal",
     prompt: "what does my README say about Kubernetes?",
     expectTools: ["search_documents"],
-    answerIncludesAny: ["couldn't find", "could not find", "no mention", "not mention", "doesn't mention", "does not mention"],
+    answerIncludesAny: [
+      "couldn't find",
+      "could not find",
+      "no mention",
+      "not mention",
+      "doesn't mention",
+      "does not mention",
+      "doesn't contain",
+      "does not contain",
+      "no information",
+      "nothing about",
+    ],
   },
   {
     id: "memory-recall",
@@ -166,5 +190,27 @@ export const cases: EvalCase[] = [
     prompt: "let's do my weekly review",
     expectTools: ["start_weekly_review"],
     answerIncludesAny: ["focus for next week"],
+  },
+  {
+    id: "workflow-weekly-review",
+    prompt: "let's do my weekly review",
+    expectTools: ["start_weekly_review"],
+    answerIncludesAny: ["focus for next week"],
+    followUps: [
+      {
+        prompt: "ok",
+        maxToolCalls: 0,
+        answerIncludesAny: ["say a bit more"],
+      },
+      {
+        prompt: "Eval focus marker 7731",
+        maxToolCalls: 0,
+        answerIncludesAny: ["noted"],
+      },
+    ],
+    verify: async () => {
+      const count = await countMemories(/Eval focus marker 7731/);
+      return count > 0 ? null : "focus was not saved to memory";
+    },
   },
 ];
