@@ -40,3 +40,21 @@ export function checkToolCall(
 
   return { decision: "allow" };
 }
+
+import type { McpTrust } from "../mcp/config";
+
+export function checkExternalToolCall(
+  name: string,
+  trust: McpTrust,
+  args: Record<string, unknown>
+): PolicyVerdict {
+  if (trust === "trusted" || trust === "read-only") {
+    return { decision: "allow" };
+  }
+
+  // Unknown behaviour: let the human decide, every time.
+  return {
+    decision: "confirm",
+    description: `${name} with ${JSON.stringify(args).slice(0, 200)}`,
+  };
+}

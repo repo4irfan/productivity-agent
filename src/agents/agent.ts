@@ -1,5 +1,5 @@
 import { executeTool } from "./tool-router";
-import { toolDefinitions } from "./tool-definitions";
+import { getToolDefinitions } from "./tool-definitions";
 import { getLLMClient } from "../llm";
 
 import { extractMemory } from "../memory/memory-extractor";
@@ -207,7 +207,7 @@ while (true) {
       purpose: "agent",
       system,
       messages: withContextInLastUserMessage(state.conversation, memoryContext),
-      tools: toolDefinitions,
+      tools: getToolDefinitions(),
     });
 
     if (response.toolCalls.length === 0) {

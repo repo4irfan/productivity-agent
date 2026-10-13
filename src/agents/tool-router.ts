@@ -2,8 +2,11 @@ import { z } from "zod";
 import { toolRegistry } from "./tool-registry";
 import { ToolError } from "./tool-error";
 import { traced, currentTrace } from "../observability/tracer";
-import { checkToolCall, MUTATING_TOOLS } from "../guardrails/tool-policy";
+import { checkToolCall, checkExternalToolCall, MUTATING_TOOLS } from "../guardrails/tool-policy";
 import { autoDeny } from "../guardrails/approval";
+import { log } from "../observability/logger";
+import { getExternalTool, callExternalTool, } from "../mcp/client-manager";
+import type { ExternalTool } from "../mcp/client-manager";
 import type { ApprovalHandler } from "../guardrails/approval";
 import type { AnyAgentTool } from "./tool-types";
 
@@ -50,10 +53,13 @@ async function executeToolInner(
 
   try {
     if (!isToolName(name)) {
-      return {
-        success: false,
-        error: "Unknown tool.",
-      };
+      const external = getExternalTool(name);
+
+      if (!external) {
+        return { success: false, error: "Unknown tool." };
+      }
+
+      return executeExternalTool(external, argumentsJson, options);
     }
 
     const tool: AnyAgentTool = toolRegistry[name];
@@ -125,5 +131,54 @@ async function executeToolInner(
       success: false,
       error: "Tool execution failed.",
     };
+  }
+}
+
+async function executeExternalTool(
+  external: ExternalTool,
+  argumentsJson: string,
+  options: ExecuteOptions
+): Promise<ToolResult> {
+  let args: Record<string, unknown>;
+
+  try {
+    args = JSON.parse(argumentsJson) as Record<string, unknown>;
+  } catch {
+    return { success: false, error: "Invalid tool arguments." };
+  }
+
+  const policy = checkExternalToolCall(external.name, external.trust, args);
+
+  if (policy.decision === "deny") {
+    return { success: false, error: policy.reason };
+  }
+
+  if (policy.decision === "confirm") {
+    const approved = await traced(
+      "approval",
+      external.name,
+      () => options.approve({
+        tool: external.name,
+        args,
+        description: policy.description,
+      }),
+      (result) => ({ approved: result })
+    );
+
+    if (!approved) {
+      return { success: false, error: "Not done: the user declined this action." };
+    }
+  }
+
+  try {
+    const result = await callExternalTool(external, args);
+
+    return result.success
+      ? { success: true, data: result.data }
+      : { success: false, error: String(result.data) || "The external tool reported an error." };
+  } catch (error) {
+    log.info(`MCP call failed: ${external.name}`, error);
+
+    return { success: false, error: "The external tool could not be reached." };
   }
 }

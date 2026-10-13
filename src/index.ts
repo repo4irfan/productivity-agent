@@ -8,6 +8,7 @@ import {
 import { runTurn } from "./observability/tracer";
 import { saveTrace } from "./observability/trace-repository";
 import { summarizeTrace } from "./observability/trace-summary";
+import { initExternalTools, closeExternalTools} from "./mcp/client-manager"
 import type { ApprovalHandler } from "./guardrails/approval"
 
 import readline from "node:readline/promises";
@@ -51,6 +52,8 @@ async function main() {
       );
     }
 
+    await initExternalTools();
+
     while (true) {
       const message = await rl.question("You: ");
 
@@ -92,6 +95,7 @@ async function main() {
     }
   } finally {
     rl.close();
+    await closeExternalTools();
   }
 
   console.log("Goodbye!");

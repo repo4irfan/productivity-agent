@@ -1,0 +1,10 @@
+{
+  "servers": {
+    "docs": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/mac/Sites/productivity-agent/docs"],
+      "trust": "read-only",
+      "allowTools": ["read_text_file", "list_directory", "search_files", "directory_tree"]
+    }
+  }
+}
