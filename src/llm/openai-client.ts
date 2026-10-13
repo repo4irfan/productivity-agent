@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { log } from "../observability/logger";
 
 import type {
   ChatCompletionMessageParam,
@@ -63,7 +64,7 @@ export class OpenAIClient implements LLMClient, EmbeddingClient {
     });
 
     if (this.options.debug) {
-      console.log("OpenAI response:", JSON.stringify(response, null, 2));
+      log.debug("OpenAI response:", JSON.stringify(response, null, 2));
     }
 
     const message = response.choices[0]?.message;

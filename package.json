@@ -13,7 +13,9 @@
     "ingest": "tsx scripts/ingest.ts",
     "search:documents": "tsx scripts/search-documents.ts",
     "traces": "tsx scripts/traces.ts",
-    "eval": "tsx scripts/eval.ts"
+    "eval": "tsx scripts/eval.ts",
+    "mcp": "tsx src/mcp/index.ts",
+    "mcp:smoke": "tsx scripts/mcp-smoke.ts"
   },
   "keywords": [],
   "author": "",
@@ -26,6 +28,7 @@
     "vitest": "^2.1.9"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "dotenv": "^17.4.2",
     "mongodb": "^7.6.0",
     "ollama": "^0.6.3",

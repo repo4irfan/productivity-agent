@@ -1,4 +1,5 @@
 import { MongoClient, type Filter } from "mongodb";
+import { log } from "../observability/logger";
 
 export type Priority = "low" | "medium" | "high";
 
@@ -27,7 +28,7 @@ const tasksCollection = db.collection<Task>("tasks");
 export async function connectDatabase() {
   await client.connect();
 
-  console.log("MongoDB connected");
+  log.info("MongoDB connected");
 }
 
 export type CreateTaskInput = {

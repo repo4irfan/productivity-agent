@@ -1,4 +1,5 @@
 import { Ollama, type Message, type Tool, type ToolCall } from "ollama";
+import { log } from "../observability/logger";
 
 import type { AgentMessage } from "../agents/agent-state";
 
@@ -65,7 +66,7 @@ export class OllamaClient implements LLMClient, EmbeddingClient {
     });
 
     if (this.options.debug) {
-      console.log("Ollama response:", JSON.stringify(response, null, 2));
+      log.debug("Ollama response:", JSON.stringify(response, null, 2));
     }
 
     return {
