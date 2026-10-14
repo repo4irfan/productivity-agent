@@ -4,13 +4,16 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { cases } from "../evals/cases";
 import { runCase, type EvalResult } from "../evals/runner";
 import { resetEvalData } from "../evals/fixtures";
+import { initExternalTools, closeExternalTools } from "../src/mcp/client-manager";
+
 
 const only = process.argv[2];
 const selected = only ? cases.filter((c) => c.id.includes(only)) : cases;
 
 const provider = process.env.LLM_PROVIDER ?? "ollama";
 const model = process.env.LLM_MODEL ?? "?";
-
+await resetEvalData();
+await initExternalTools();
 
 console.log(`Running ${selected.length} cases on ${provider}/${model}\n`);
 
@@ -39,4 +42,5 @@ await writeFile(file, JSON.stringify({ provider, model, passed, total: results.l
 
 console.log(`Saved ${file}`);
 await resetEvalData();
+await closeExternalTools();
 process.exit(passed === results.length ? 0 : 1);

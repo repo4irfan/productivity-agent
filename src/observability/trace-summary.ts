@@ -11,10 +11,12 @@ export function summarizeTrace(trace: TurnTrace): string {
   const cachedPercent =
     promptTokens > 0 ? Math.round((cachedTokens / promptTokens) * 100) : 0;
 
+  const maxPrompt = Math.max(0, ...llm.map((s) => Number(s.data?.promptTokens ?? 0)));
+
   const parts = [
     `${(trace.durationMs / 1000).toFixed(1)}s`,
     `llm ×${llm.length} (${llm.map((s) => `${s.name} ${(s.durationMs / 1000).toFixed(1)}s`).join(" · ")})`,
-    `prompt ${promptTokens} tok, ${cachedPercent}% cached`,
+    `prompt ${promptTokens} tok total, largest ${maxPrompt}, ${cachedPercent}% cached`,
     `embed ×${embeds.length}`,
   ];
 
