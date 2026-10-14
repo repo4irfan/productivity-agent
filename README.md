@@ -13,6 +13,7 @@ The project intentionally avoids agent frameworks such as Mastra so that the und
 - **MongoDB** (Docker)
 - **Zod**
 - **Vitest**
+- **MCP** — `@modelcontextprotocol/sdk`, as both server and client
 
 ## ✨ Current Features
 
@@ -90,6 +91,48 @@ You: shipping the MCP integration
 Only the first turn calls the model — it decides to start the workflow. The remaining turns run in code, in about 0.1s each with no LLM call, and the text the user sees is assembled from real data rather than generated, so the numbers can't be wrong.
 
 A step returns one of three things: `continue` (run the next step now), `ask` (stop and wait for the user, optionally repeating this step), or `finish`. The engine's step-running logic is a pure function, so it is unit-tested without a database or a model.
+
+### MCP (Model Context Protocol)
+
+The agent works in both directions: it serves its own tools over MCP, and it consumes tools from other MCP servers.
+
+**As a server.** `npm run mcp` exposes 13 of the agent's tools over stdio, so any MCP client can manage the tasks — Claude Desktop, an editor, or another agent. The server is built by looping over the same tool registry the agent uses, and it routes calls through the same router, so MCP callers get the same Zod validation, the same safe error messages, and the same tool policy. The guardrail sets become protocol metadata: `MUTATING_TOOLS` becomes `readOnlyHint`, `CONFIRM_TOOLS` becomes `destructiveHint`.
+
+```json
+{
+  "mcpServers": {
+    "productivity-agent": {
+      "command": "npx",
+      "args": ["tsx", "/absolute/path/to/src/mcp/index.ts"]
+    }
+  }
+}
+```
+
+Human-in-the-loop moves to the MCP host in this direction: Claude Desktop asks the user before each call, so the server itself auto-approves.
+
+**As a client.** `mcp.config.json` lists external servers. Their tools are discovered at startup, namespaced `mcp__<server>__<tool>`, and merged into the tool list the model sees. Calls go through the same router and the same `ApprovalHandler`, so confirmation works for tools the project did not write.
+
+```json
+{
+  "servers": {
+    "docs": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/absolute/path/to/docs"],
+      "trust": "read-only",
+      "allowTools": ["read_text_file", "list_directory", "search_files", "directory_tree"],
+      "promptNote": "Always pass absolute paths beginning with /absolute/path/to/docs."
+    }
+  }
+}
+```
+
+Four decisions worth explaining:
+
+- **Trust is configured by the human, never advertised by the server.** MCP tools carry `readOnlyHint`/`destructiveHint` annotations, and the spec itself says clients should not make decisions based on them from untrusted servers. So the trust level lives in this file: `read-only` and `trusted` run freely, `confirm` (the default) asks the user every time.
+- **`allowTools` enforces what `trust` claims.** The filesystem server exposes 14 tools, four of which write files. Per-server trust is too coarse for a server that mixes reads and writes, so the allowlist reduces it to four genuinely read-only tools — then `read-only` is a statement the project enforces rather than one it hopes is true.
+- **`promptNote` supplies context the tool descriptions omit.** The filesystem server resolves paths against a root the model cannot see, so the first call failed with `docs/docs`. One line in config fixed it.
+- **A server that fails to connect is skipped, not fatal.** A broken MCP config must never stop the agent from working.
 
 ### Conversation Persistence
 
@@ -201,6 +244,12 @@ src/
 │   ├── task-repository.ts
 │   └── conversation-repository.ts
 │
+├── mcp/
+│   ├── server.ts                 # exposes the registry over MCP
+│   ├── client-manager.ts         # connects to external servers, discovers tools
+│   ├── config.ts                 # mcp.config.json: trust, allowTools, promptNote
+│   └── index.ts                  # stdio entry point
+│
 ├── workflows/
 │   ├── workflow-types.ts         # steps return continue / ask / finish
 │   ├── workflow-engine.ts        # pure runSteps + persistence
@@ -272,6 +321,8 @@ Covered so far:
 - Why LLM output is non-deterministic, and what temperature does about it
 - Workflow orchestration: resumable multi-turn processes driven by code
 - Returning tool output directly to the user when the model must not rewrite it
+- MCP in both directions: serving tools, and consuming tools discovered at runtime
+- Deciding how much to trust a tool whose behaviour you cannot verify
 
 ### The pattern that kept showing up
 
@@ -284,6 +335,10 @@ Covered so far:
 **Default temperature is wrong for agents.** Ollama defaults to `temperature: 0.8`. The same eval case passed and failed on alternating runs until it was set to 0 — the model was sampling, not choosing.
 
 **Some output must never pass through the model.** The weekly review returns real counts and task titles. Asking the model to "relay this exactly" did not work — it summarized eleven overdue tasks down to four. Tools now carry a `returnDirect` flag: their output goes straight to the user and the model never sees it.
+
+**An eval that drifts from the runtime stops measuring anything.** After adding external MCP tools, the suite still passed 20/20 — because the eval script never connected to the MCP servers, so it was testing 14 tools while the CLI ran 18. The suite has to build the same toolset the agent actually uses.
+
+**Know what your metric aggregates.** The trace summary sums prompt tokens across every LLM call in a turn. Comparing that total against a single call's count made four external tools look like they had tripled the prompt; they had added about 500 tokens. The line now says "total" and "largest" explicitly.
 
 **A bad eval sends you debugging the wrong layer.** Three consecutive "agent bugs" turned out to be leftover test data, an assertion that guessed at the cause instead of reporting the actual count, and copy-pasted task titles. Evals need isolated fixtures and assertions that print real values.
 
@@ -364,6 +419,8 @@ Then ask the agent about it: `what do my notes say about ...?`
 | `npm run dedupe:memories` | remove near-duplicate memories |
 | `npm run eval [-- filter]` | run the evaluation suite |
 | `npm run traces` | summarize the last 50 turns (latency, cache hits, time by kind) |
+| `npm run mcp` | run the MCP server on stdio |
+| `npm run mcp:smoke` | connect a test client and list the exposed tools |
 
 ## 💬 Example
 
@@ -399,6 +456,7 @@ Agent: From your "Deploy checklist": 1. Run the checks ... 6. Commit and tag.
 - [x] **Human-in-the-loop** — approve or edit tool calls before execution
 - [x] **Workflow orchestration** — resumable multi-turn processes (weekly review)
 - [x] **Multi-turn evaluation** — cases that send several messages and assert each turn
+- [x] **MCP integration** — serving tools over MCP, and consuming external MCP servers
 
 ### Planned
 
@@ -406,7 +464,6 @@ In the order I intend to tackle them:
 
 - [ ] **Eval pass rates** — run each case N times and report a rate, not pass/fail
 - [ ] **LLM-as-judge assertions** — substring checks cannot cover every phrasing of a correct answer
-- [ ] **MCP integration** — expose tools over MCP and consume external MCP servers
 - [ ] **Anthropic adapter** — third provider through the same interface
 - [ ] **Vector database** — replace brute-force cosine when the collection outgrows it
 - [ ] **Authentication and authorization** — multi-user
