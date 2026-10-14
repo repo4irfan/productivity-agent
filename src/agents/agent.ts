@@ -18,6 +18,7 @@ import { autoDeny } from "../guardrails/approval";
 
 import { resumeWorkflow } from "../workflows/workflow-engine";
 import { toolRegistry } from "./tool-registry";
+import { externalToolNotes } from "../mcp/client-manager";
 
 import type { ApprovalHandler } from "../guardrails/approval"
 import type { AgentState, AgentMessage } from "./agent-state";
@@ -175,6 +176,7 @@ Rules:
 - When the user asks for a weekly review, call start_weekly_review and relay
   its output to the user exactly as returned. Do not summarize or rewrite it.
 
+${externalToolNotes()}
 Calendar (use this to convert relative dates to YYYY-MM-DD — do not calculate dates yourself):
 ${buildCalendarContext()}
 ${summaryContext}

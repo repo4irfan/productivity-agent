@@ -1,10 +1,11 @@
 {
   "servers": {
     "docs": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/mac/Sites/productivity-agent/docs"],
-      "trust": "read-only",
-      "allowTools": ["read_text_file", "list_directory", "search_files", "directory_tree"]
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/mac/Sites/productivity-agent/docs"],
+        "trust": "read-only",
+        "allowTools": ["read_text_file", "list_directory", "search_files", "directory_tree"],
+        "promptNote": "The docs server reads files under /Users/mac/Sites/productivity-agent/docs. Always pass absolute paths beginning with that directory."
     }
   }
 }

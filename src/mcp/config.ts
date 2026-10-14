@@ -14,6 +14,8 @@ const configSchema = z.object({
       trust: trustSchema.default("confirm"),
       /** If present, only these remote tool names are exposed. */
       allowTools: z.array(z.string()).optional(),
+      /** Extra context the model needs to use this server's tools correctly. */
+      promptNote: z.string().optional(),
     })
   ),
 });

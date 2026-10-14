@@ -1,3 +1,5 @@
+import type { McpTrust } from "../mcp/config";
+
 export const MUTATING_TOOLS = new Set([
   "create_task", "update_task", "complete_task", "delete_task", "remember",
 ]);
@@ -40,8 +42,6 @@ export function checkToolCall(
 
   return { decision: "allow" };
 }
-
-import type { McpTrust } from "../mcp/config";
 
 export function checkExternalToolCall(
   name: string,

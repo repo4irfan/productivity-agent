@@ -18,9 +18,12 @@ export type ExternalTool = {
 };
 
 const CALL_TIMEOUT_MS = 30_000;
+const MAX_DESCRIPTION_CHARS = 300;
+
 
 let tools: Map<string, ExternalTool> | null = null;
 const clients = new Map<string, Client>();
+let notes: string[] = [];
 
 /** Connects to every configured server and discovers its tools. Safe to call repeatedly. */
 export async function initExternalTools(): Promise<void> {
@@ -43,6 +46,10 @@ export async function initExternalTools(): Promise<void> {
           ...(server.env ? { env: server.env } : {}),
         })
       );
+
+      if (server.promptNote) {
+        notes.push(`[${serverName}] ${server.promptNote}`);
+      }
 
       clients.set(serverName, client);
 
@@ -81,7 +88,7 @@ export async function initExternalTools(): Promise<void> {
 export function externalToolDefinitions(): LLMToolDefinition[] {
   return [...(tools?.values() ?? [])].map((tool) => ({
     name: tool.name,
-    description: `[${tool.serverName}] ${tool.description}`,
+    description: `[${tool.serverName}] ${tool.description.slice(0, MAX_DESCRIPTION_CHARS)}`,
     parameters: tool.parameters,
   }));
 }
@@ -121,6 +128,13 @@ export async function closeExternalTools(): Promise<void> {
 
   clients.clear();
   tools = null;
+  notes = [];
+}
+
+export function externalToolNotes(): string {
+  return notes.length
+    ? `\nExternal tool notes:\n${notes.map((note) => `- ${note}`).join("\n")}\n`
+    : "";
 }
 
 function toToolParameters(schema: unknown): OpenAIToolParameters {
