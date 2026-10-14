@@ -1,9 +1,97 @@
 {
   "provider": "ollama",
   "model": "qwen2.5:7b",
-  "passed": 2,
-  "total": 2,
+  "passed": 20,
+  "total": 20,
   "results": [
+    {
+      "id": "chit-chat-no-tools",
+      "passed": true,
+      "failures": [],
+      "tools": [],
+      "reply": "Hello! I'm here to help you with productivity. How can I assist you today? Do you have any tasks or questions in mind?",
+      "durationMs": 78482
+    },
+    {
+      "id": "create-task",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "create_task"
+      ],
+      "reply": "I've created a task titled \"Eval Create Task\" with medium priority. Is there anything else you'd like to add to this task or any other tasks?",
+      "durationMs": 25607
+    },
+    {
+      "id": "create-task-with-priority-and-date",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "create_task"
+      ],
+      "reply": "The task \"Eval Dated Task\" has been created successfully. It is due on 2026-10-01 and has a high priority.",
+      "durationMs": 32621
+    },
+    {
+      "id": "overdue-uses-filter",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "list_tasks"
+      ],
+      "reply": "There are two overdue tasks:\n\n1. \"Write report\" - Due on 2026-09-18 and has a high priority.\n2. \"Eval Dated Task\" - Due on 2026-10-01 and also has a high priority.\n\nThese tasks should be your focus today.",
+      "durationMs": 34311
+    },
+    {
+      "id": "plan-uses-briefing",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "get_daily_briefing"
+      ],
+      "reply": "Based on your briefing, you have several high-priority tasks due today and this week. Here's a plan for the day:\n\n1. **Overdue Tasks:**\n   - Write report (Due: 2026-09-18)\n   - Eval Dated Task (Due: 2026-10-01)\n\n2. **High Priority Tasks Due This Week:**\n   - Write report (Due: 2026-09-18)\n   - Eval Dated Task (Due: 2026-10-01)\n   - Weekly Review (No due date, but important)\n\nGiven your preference for backend tasks and deep work before noon, I recommend starting with the overdue tasks and then moving on to the high-priority tasks due this week. Make sure to allocate time for the Weekly Review as well.",
+      "durationMs": 72204
+    },
+    {
+      "id": "complete-by-title",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "complete_task"
+      ],
+      "reply": "The task \"Eval Complete Me\" has been marked as completed.",
+      "durationMs": 20719
+    },
+    {
+      "id": "rename-by-title",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "update_task"
+      ],
+      "reply": "The task titled \"Eval Rename Me\" has been successfully renamed to \"Eval Renamed\".",
+      "durationMs": 23127
+    },
+    {
+      "id": "complete-ambiguous-title-asks",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "complete_task"
+      ],
+      "reply": "It seems there are multiple tasks that match \"Eval Ambiguous\". Could you please specify which one you want to complete by providing its ID?",
+      "durationMs": 23250
+    },
+    {
+      "id": "missing-task-is-reported",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "complete_task"
+      ],
+      "reply": "It seems the task with ID `00000000-0000-0000-0000-000000000000` was not found. Could you please provide me with the title of the task you want to complete?",
+      "durationMs": 39261
+    },
     {
       "id": "rag-whole-document",
       "passed": true,
@@ -11,8 +99,8 @@
       "tools": [
         "search_documents"
       ],
-      "reply": "Based on your deployment checklist, here are the steps you should follow:\n\n1. Run the checks:\n   - Run `npm run typecheck` and `npm test`. Do not deploy if either fails.\n\n2. Check MongoDB:\n   - Make sure the MongoDB container is running with `docker compose ps`.\n   - The database name is productivity_agent and it listens on port 27018.\n\n3. Verify Ollama models:\n   - Both `qwen2.5:7b` and `nomic-embed-text` must be pulled. Check with `ollama list`.\n\n4. Update environment:\n   - Copy any new keys from `.env.example` into `.env`.\n   - Set `DEBUG=false` for normal use.\n\n5. Smoke test:\n   - Start with `npm run dev`, create a task, ask for a daily briefing, then exit.\n\n6. Commit and tag:\n   - Commit with a clear message and tag the release, e.g. `git tag v0.4.0`.\n\nThese steps should help you ensure a smooth deployment process.",
-      "durationMs": 175114
+      "reply": "Based on your deployment checklist, here are the steps you should follow before deploying the productivity agent:\n\n1. Run the checks:\n   - Run `npm run typecheck` and `npm test`. Do not deploy if either fails.\n\n2. Check MongoDB:\n   - Make sure the MongoDB container is running with `docker compose ps`.\n   - The database name is productivity_agent and it listens on port 27018.\n\n3. Verify Ollama models:\n   - Both `qwen2.5:7b` and `nomic-embed-text` must be pulled. Check with `ollama list`.\n\n4. Update environment:\n   - Copy any new keys from `.env.example` into `.env`.\n   - Set `DEBUG=false` for normal use.\n\n5. Smoke test:\n   - Start with `npm run dev`, create a task, ask for a daily briefing, then exit.\n\n6. Commit and tag:\n   - Commit with a clear message and tag the release, e.g. `git tag v0.4.0`.\n\nThese steps should help ensure a smooth deployment process.",
+      "durationMs": 96841
     },
     {
       "id": "rag-grounded-refusal",
@@ -21,8 +109,98 @@
       "tools": [
         "search_documents"
       ],
-      "reply": "Your README does not contain any specific information about Kubernetes. It seems to focus more on the architecture and stack used in the project. If you have any other questions or need further assistance, feel free to ask!",
-      "durationMs": 35658
+      "reply": "I couldn't find any information about Kubernetes in your documents. Could you provide more details or check if you have the correct information?",
+      "durationMs": 20719
+    },
+    {
+      "id": "memory-recall",
+      "passed": true,
+      "failures": [],
+      "tools": [],
+      "reply": "Based on your preferences, you are most productive in the morning, especially before noon. You also prefer to focus on backend tasks during this time. Given these habits, it would be a good idea to tackle complex or backend-related tasks in the morning when you are at your most productive.",
+      "durationMs": 21376
+    },
+    {
+      "id": "guard-long-input",
+      "passed": true,
+      "failures": [],
+      "tools": [],
+      "reply": "That message is too long (2500 characters). Please keep it under 2000.",
+      "durationMs": 2
+    },
+    {
+      "id": "guard-mutation-cap",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "create_task",
+        "create_task",
+        "create_task",
+        "create_task",
+        "create_task"
+      ],
+      "reply": "I've created four of your tasks: \"Eval Cap One,\" \"Eval Cap Two,\" and \"Eval Cap Three.\" The task \"Eval Cap Four\" could not be created due to the limit on changes per message. Please continue in a new message if you'd like to add \"Eval Cap Four\" and \"Eval Cap Five.\"",
+      "durationMs": 96083
+    },
+    {
+      "id": "hitl-delete-declined",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "delete_task"
+      ],
+      "reply": "It seems you declined to delete the task called \"Eval Delete.\" If you change your mind, let me know!",
+      "durationMs": 19277
+    },
+    {
+      "id": "hitl-delete-approved",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "delete_task"
+      ],
+      "reply": "The task \"Eval Delete Approved\" has been successfully deleted.",
+      "durationMs": 17337
+    },
+    {
+      "id": "hitl-retry-after-decline",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "delete_task"
+      ],
+      "reply": "The task titled \"Eval Retry Delete\" has been successfully deleted.",
+      "durationMs": 16691
+    },
+    {
+      "id": "no-fake-decline",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "delete_task"
+      ],
+      "reply": "The task \"Eval No Fake\" has been successfully deleted.",
+      "durationMs": 17881
+    },
+    {
+      "id": "workflow-starts",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "start_weekly_review"
+      ],
+      "reply": "Last week you completed 1 task: Eval Complete Me.\n2 are overdue: Write report, Eval Dated Task.\nYou have 108 open tasks.\n\nWhat is your main focus for next week?",
+      "durationMs": 8642
+    },
+    {
+      "id": "workflow-weekly-review",
+      "passed": true,
+      "failures": [],
+      "tools": [
+        "start_weekly_review"
+      ],
+      "reply": "Noted — your focus for next week is: Eval focus marker 7731. Consider rescheduling or dropping the 2 overdue task(s) first.",
+      "durationMs": 7142
     }
   ]
 }
